@@ -63,11 +63,11 @@ const washingtonFrames = {
   }
 };
 const washingtonWalkFrames = [
-  { image: washingtonWalkSprite, crop: { x: 61, y: 57, w: 372, h: 586 }, height: 232, offsetX: -4 },
-  { image: washingtonWalkSprite, crop: { x: 488, y: 57, w: 368, h: 579 }, height: 232, offsetX: -1 },
-  { image: washingtonWalkSprite, crop: { x: 942, y: 55, w: 346, h: 589 }, height: 232, offsetX: 0 },
-  { image: washingtonWalkSprite, crop: { x: 1380, y: 57, w: 300, h: 586 }, height: 232, offsetX: 3 },
-  { image: washingtonWalkSprite, crop: { x: 1775, y: 57, w: 373, h: 589 }, height: 232, offsetX: 4 }
+  { image: washingtonWalkSprite, crop: { x: 0, y: 43, w: 434, h: 618 }, height: 232, offsetX: 0 },
+  { image: washingtonWalkSprite, crop: { x: 434, y: 43, w: 435, h: 618 }, height: 232, offsetX: 0 },
+  { image: washingtonWalkSprite, crop: { x: 869, y: 43, w: 434, h: 618 }, height: 232, offsetX: 0 },
+  { image: washingtonWalkSprite, crop: { x: 1303, y: 43, w: 435, h: 618 }, height: 232, offsetX: 0 },
+  { image: washingtonWalkSprite, crop: { x: 1738, y: 43, w: 434, h: 618 }, height: 232, offsetX: 0 }
 ];
 
 const presidents = [
