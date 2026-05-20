@@ -109,7 +109,7 @@ const washingtonBackwalkCycle = [0, 1, 2, 3, 4, 3, 2, 1];
 const washingtonJumpFrames = washingtonJumpSprites.map((image) => ({
   image,
   crop: { x: 0, y: 0, w: 380, h: 600 },
-  height: 220,
+  height: 300,
   offsetX: 0
 }));
 
