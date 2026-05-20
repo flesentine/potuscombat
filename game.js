@@ -23,6 +23,7 @@ const jumpVelocity = -15.8;
 const jumpRiseGravity = 0.92;
 const jumpFallGravity = 1.35;
 const walkFrameTicks = 8;
+const backwalkFrameTicks = 9;
 const keys = new Set();
 const stageImage = new Image();
 stageImage.src = "assets/presidential-stage-16bit.png";
@@ -99,6 +100,7 @@ const washingtonBackwalkFrames = washingtonBackwalkSprites.map((image) => ({
   height: 220,
   offsetX: 0
 }));
+const washingtonBackwalkCycle = [0, 1, 2, 3, 4, 3, 2, 1];
 
 const presidents = [
   {
@@ -599,10 +601,13 @@ function washingtonMoveSpritesReady() {
 }
 
 function washingtonWalkFrameFor(f) {
-  const rawFrame = Math.floor(tick / walkFrameTicks) % washingtonWalkFrames.length;
   const movingForward = Math.sign(f.vx) === f.dir;
-  const frames = movingForward ? washingtonWalkFrames : washingtonBackwalkFrames;
-  return frames[rawFrame % frames.length];
+  if (movingForward) {
+    const rawFrame = Math.floor(tick / walkFrameTicks) % washingtonWalkFrames.length;
+    return washingtonWalkFrames[rawFrame];
+  }
+  const rawFrame = Math.floor(tick / backwalkFrameTicks) % washingtonBackwalkCycle.length;
+  return washingtonBackwalkFrames[washingtonBackwalkCycle[rawFrame]];
 }
 
 function drawProjectile(p) {
