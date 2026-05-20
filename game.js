@@ -43,6 +43,11 @@ const washingtonWalkSprites = [1, 2, 3, 4, 5].map((frame) => {
   image.src = `assets/washington-walk-${frame}.png`;
   return image;
 });
+const washingtonBackwalkSprites = [1, 2, 3, 4, 5].map((frame) => {
+  const image = new Image();
+  image.src = `assets/washington-backwalk-${frame}.png`;
+  return image;
+});
 const washingtonFrames = {
   idle: {
     image: washingtonSprite,
@@ -88,6 +93,12 @@ const washingtonWalkFrames = [
   { image: washingtonWalkSprites[3], crop: { x: 0, y: 125, w: 362, h: 510 }, height: 220, offsetX: 0 },
   { image: washingtonWalkSprites[4], crop: { x: 0, y: 125, w: 330, h: 510 }, height: 220, offsetX: -4 }
 ];
+const washingtonBackwalkFrames = washingtonBackwalkSprites.map((image) => ({
+  image,
+  crop: { x: 0, y: 30, w: 436, h: 630 },
+  height: 220,
+  offsetX: 0
+}));
 
 const presidents = [
   {
@@ -576,17 +587,22 @@ function washingtonFrameFor(f) {
   if (f.crouching && washingtonCrouchSprite.complete && washingtonCrouchSprite.naturalWidth > 0) {
     return washingtonFrames.crouch;
   }
-  if (!f.jumping && Math.abs(f.vx) > 0.2 && washingtonWalkSprites.every((image) => image.complete && image.naturalWidth > 0)) {
+  if (!f.jumping && Math.abs(f.vx) > 0.2 && washingtonMoveSpritesReady()) {
     return washingtonWalkFrameFor(f);
   }
   return washingtonFrames.idle;
 }
 
+function washingtonMoveSpritesReady() {
+  return washingtonWalkSprites.every((image) => image.complete && image.naturalWidth > 0)
+    && washingtonBackwalkSprites.every((image) => image.complete && image.naturalWidth > 0);
+}
+
 function washingtonWalkFrameFor(f) {
   const rawFrame = Math.floor(tick / walkFrameTicks) % washingtonWalkFrames.length;
   const movingForward = Math.sign(f.vx) === f.dir;
-  const frameIndex = movingForward ? rawFrame : washingtonWalkFrames.length - 1 - rawFrame;
-  return washingtonWalkFrames[frameIndex];
+  const frames = movingForward ? washingtonWalkFrames : washingtonBackwalkFrames;
+  return frames[rawFrame % frames.length];
 }
 
 function drawProjectile(p) {
