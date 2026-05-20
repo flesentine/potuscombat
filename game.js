@@ -34,8 +34,11 @@ const washingtonKickSprite = new Image();
 washingtonKickSprite.src = "assets/washington-kick.png";
 const washingtonCrouchSprite = new Image();
 washingtonCrouchSprite.src = "assets/washington-crouch.png";
-const washingtonWalkSprite = new Image();
-washingtonWalkSprite.src = "assets/washington-walk.png";
+const washingtonWalkSprites = [1, 2, 3, 4, 5].map((frame) => {
+  const image = new Image();
+  image.src = `assets/washington-walk-${frame}.png`;
+  return image;
+});
 const washingtonFrames = {
   idle: {
     image: washingtonSprite,
@@ -63,11 +66,11 @@ const washingtonFrames = {
   }
 };
 const washingtonWalkFrames = [
-  { image: washingtonWalkSprite, crop: { x: 0, y: 43, w: 434, h: 618 }, height: 232, offsetX: 0 },
-  { image: washingtonWalkSprite, crop: { x: 434, y: 43, w: 435, h: 618 }, height: 232, offsetX: 0 },
-  { image: washingtonWalkSprite, crop: { x: 869, y: 43, w: 434, h: 618 }, height: 232, offsetX: 0 },
-  { image: washingtonWalkSprite, crop: { x: 1303, y: 43, w: 435, h: 618 }, height: 232, offsetX: 0 },
-  { image: washingtonWalkSprite, crop: { x: 1738, y: 43, w: 434, h: 618 }, height: 232, offsetX: 0 }
+  { image: washingtonWalkSprites[0], crop: { x: 134, y: 100, w: 888, h: 1077 }, height: 238, offsetX: 0 },
+  { image: washingtonWalkSprites[1], crop: { x: 232, y: 91, w: 680, h: 1030 }, height: 238, offsetX: 0 },
+  { image: washingtonWalkSprites[2], crop: { x: 241, y: 64, w: 699, h: 1098 }, height: 238, offsetX: 0 },
+  { image: washingtonWalkSprites[3], crop: { x: 226, y: 69, w: 682, h: 1068 }, height: 238, offsetX: 0 },
+  { image: washingtonWalkSprites[4], crop: { x: 172, y: 81, w: 747, h: 1094 }, height: 238, offsetX: 0 }
 ];
 
 const presidents = [
@@ -549,7 +552,7 @@ function washingtonFrameFor(f) {
   if (f.crouching && washingtonCrouchSprite.complete && washingtonCrouchSprite.naturalWidth > 0) {
     return washingtonFrames.crouch;
   }
-  if (!f.jumping && Math.abs(f.vx) > 0.2 && washingtonWalkSprite.complete && washingtonWalkSprite.naturalWidth > 0) {
+  if (!f.jumping && Math.abs(f.vx) > 0.2 && washingtonWalkSprites.every((image) => image.complete && image.naturalWidth > 0)) {
     return washingtonWalkFrameFor(f);
   }
   return washingtonFrames.idle;
