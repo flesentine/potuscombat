@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>POTUS COMBAT</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="cabinet">
+      <section class="topbar" aria-label="Game controls and roster">
+        <div class="brand">
+          <span class="kicker">16-Bit Presidential Combat</span>
+          <h1>POTUS COMBAT</h1>
+        </div>
+
+        <div class="selectors">
+          <label>
+            Player
+            <select id="playerSelect" aria-label="Choose player president"></select>
+          </label>
+          <label>
+            Rival
+            <select id="rivalSelect" aria-label="Choose rival president"></select>
+          </label>
+          <button id="startBtn" type="button">Start Match</button>
+        </div>
+      </section>
+
+      <section class="screen-wrap" aria-label="Game screen">
+        <canvas id="game" width="960" height="540"></canvas>
+        <div id="overlay" class="overlay">
+          <div>
+            <span class="insert">Press Start</span>
+            <p>WASD move, J punch, K kick, L special, Space block</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="move-card" aria-label="Special moves">
+        <article>
+          <h2 id="p1Name">Washington</h2>
+          <p id="p1Move">Delaware Dash</p>
+        </article>
+        <article>
+          <h2 id="p2Name">Lincoln</h2>
+          <p id="p2Move">Railsplitter Uppercut</p>
+        </article>
+      </section>
+    </main>
+
+    <script src="game.js"></script>
+  </body>
+</html>

@@ -1,0 +1,604 @@
+"use strict";
+
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+ctx.imageSmoothingEnabled = false;
+
+const playerSelect = document.getElementById("playerSelect");
+const rivalSelect = document.getElementById("rivalSelect");
+const startBtn = document.getElementById("startBtn");
+const overlay = document.getElementById("overlay");
+const p1Name = document.getElementById("p1Name");
+const p2Name = document.getElementById("p2Name");
+const p1Move = document.getElementById("p1Move");
+const p2Move = document.getElementById("p2Move");
+
+const W = canvas.width;
+const H = canvas.height;
+const floorY = 456;
+const keys = new Set();
+const stageImage = new Image();
+stageImage.src = "assets/presidential-stage-16bit.png";
+const washingtonSprite = new Image();
+washingtonSprite.src = "assets/washington-idle.png";
+const washingtonPunchSprite = new Image();
+washingtonPunchSprite.src = "assets/washington-punch.png";
+const washingtonFrames = {
+  idle: {
+    image: washingtonSprite,
+    crop: { x: 247, y: 55, w: 668, h: 1174 },
+    height: 238
+  },
+  punch: {
+    image: washingtonPunchSprite,
+    crop: { x: 140, y: 83, w: 950, h: 1100 },
+    height: 238
+  }
+};
+
+const presidents = [
+  {
+    name: "Washington",
+    short: "WASH",
+    move: "Delaware Dash",
+    stage: "Mount Vernon Portico",
+    colors: ["#253d72", "#efe1b1", "#d4a94f"],
+    accent: "#b33a3a",
+    special: "dash",
+    line: "Cross the Delaware!"
+  },
+  {
+    name: "Lincoln",
+    short: "LINC",
+    move: "Railsplitter Uppercut",
+    stage: "Marble Memorial Steps",
+    colors: ["#1c1c22", "#5a351f", "#dadde5"],
+    accent: "#77a7ff",
+    special: "uppercut",
+    line: "Four score combo!"
+  },
+  {
+    name: "T. Roosevelt",
+    short: "TEDDY",
+    move: "Rough Rider Rush",
+    stage: "National Park Outlook",
+    colors: ["#6c4b25", "#263f26", "#e8cc8b"],
+    accent: "#f2bb38",
+    special: "rush",
+    line: "Bully!"
+  },
+  {
+    name: "Kennedy",
+    short: "JFK",
+    move: "Moonshot Beam",
+    stage: "Cape Canaveral Podium",
+    colors: ["#253f77", "#15151d", "#e8e8ef"],
+    accent: "#9ee4ff",
+    special: "beam",
+    line: "Ask not..."
+  },
+  {
+    name: "Jefferson",
+    short: "JEFF",
+    move: "Quill Cyclone",
+    stage: "Monticello Lawn",
+    colors: ["#7c2727", "#ead7a5", "#2d5f47"],
+    accent: "#f3f0cf",
+    special: "cyclone",
+    line: "Declaration devastation!"
+  },
+  {
+    name: "Grant",
+    short: "GRANT",
+    move: "Union Cannon",
+    stage: "Capitol Encampment",
+    colors: ["#243a66", "#324455", "#d0b06a"],
+    accent: "#ffdf5f",
+    special: "cannon",
+    line: "Unconditional combo!"
+  }
+];
+
+let player = makeFighter(presidents[0], 190, 1, true);
+let rival = makeFighter(presidents[1], 730, -1, false);
+let running = false;
+let gameOver = false;
+let roundText = "SELECT YOUR COMMANDER";
+let roundTextTimer = 999;
+let shake = 0;
+let tick = 0;
+let projectiles = [];
+let hitSparks = [];
+
+function makeFighter(data, x, dir, human) {
+  return {
+    data,
+    x,
+    y: floorY,
+    vx: 0,
+    vy: 0,
+    dir,
+    human,
+    w: 72,
+    h: 148,
+    hp: 100,
+    energy: 100,
+    cooldown: 0,
+    attack: 0,
+    special: 0,
+    block: false,
+    hurt: 0,
+    jumping: false,
+    wins: 0
+  };
+}
+
+function populateSelects() {
+  presidents.forEach((pres, index) => {
+    const left = new Option(`${pres.name} - ${pres.move}`, String(index));
+    const right = new Option(`${pres.name} - ${pres.move}`, String(index));
+    playerSelect.add(left);
+    rivalSelect.add(right);
+  });
+  rivalSelect.value = "1";
+  updateMoveCards();
+}
+
+function resetMatch() {
+  const p = presidents[Number(playerSelect.value)];
+  const r = presidents[Number(rivalSelect.value)];
+  player = makeFighter(p, 190, 1, true);
+  rival = makeFighter(r, 730, -1, false);
+  projectiles = [];
+  hitSparks = [];
+  roundText = `${p.short} VS ${r.short}`;
+  roundTextTimer = 130;
+  running = true;
+  gameOver = false;
+  overlay.classList.add("hidden");
+  updateMoveCards();
+}
+
+function updateMoveCards() {
+  const p = presidents[Number(playerSelect.value)];
+  const r = presidents[Number(rivalSelect.value)];
+  p1Name.textContent = p.name;
+  p2Name.textContent = r.name;
+  p1Move.textContent = `${p.move} - ${p.stage}`;
+  p2Move.textContent = `${r.move} - ${r.stage}`;
+}
+
+function rect(f) {
+  return { x: f.x - f.w / 2, y: f.y - f.h, w: f.w, h: f.h };
+}
+
+function intersects(a, b) {
+  return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+}
+
+function clamp(v, min, max) {
+  return Math.max(min, Math.min(max, v));
+}
+
+function update() {
+  tick += 1;
+  if (!running) return;
+
+  controlPlayer();
+  controlAI();
+  stepFighter(player, rival);
+  stepFighter(rival, player);
+  stepProjectiles();
+  hitSparks = hitSparks.filter((s) => --s.life > 0);
+  shake = Math.max(0, shake - 1);
+  roundTextTimer = Math.max(0, roundTextTimer - 1);
+
+  if (!gameOver && (player.hp <= 0 || rival.hp <= 0)) {
+    gameOver = true;
+    running = false;
+    roundText = player.hp > rival.hp ? "PLAYER WINS" : "RIVAL WINS";
+    roundTextTimer = 999;
+    setTimeout(() => overlay.classList.remove("hidden"), 900);
+  }
+}
+
+function controlPlayer() {
+  const speed = 6.3;
+  player.vx = 0;
+  if (keys.has("KeyA")) player.vx -= speed;
+  if (keys.has("KeyD")) player.vx += speed;
+  player.block = keys.has("Space") && player.cooldown < 8;
+  if (keys.has("KeyW") && !player.jumping) {
+    player.vy = -19.5;
+    player.jumping = true;
+  }
+  if (keys.has("KeyJ")) strike(player, rival, "punch");
+  if (keys.has("KeyK")) strike(player, rival, "kick");
+  if (keys.has("KeyL")) special(player, rival);
+}
+
+function controlAI() {
+  const dist = Math.abs(player.x - rival.x);
+  rival.block = false;
+  rival.vx = 0;
+  if (rival.cooldown > 0 || rival.hurt > 0) return;
+  if (dist > 145) rival.vx = player.x < rival.x ? -3.6 : 3.6;
+  if (dist < 88) rival.vx = player.x < rival.x ? 3.3 : -3.3;
+  if (tick % 75 === 0 && dist < 110) strike(rival, player, Math.random() > 0.5 ? "punch" : "kick");
+  if (tick % 145 === 0 && dist < 310) special(rival, player);
+  if (tick % 190 === 0 && Math.random() > 0.55) rival.block = true;
+}
+
+function stepFighter(f, foe) {
+  f.dir = foe.x >= f.x ? 1 : -1;
+  f.cooldown = Math.max(0, f.cooldown - 1);
+  f.attack = Math.max(0, f.attack - 1);
+  f.special = Math.max(0, f.special - 1);
+  f.hurt = Math.max(0, f.hurt - 1);
+  f.energy = clamp(f.energy + 0.16, 0, 100);
+  if (f.hurt > 0) f.vx *= 0.88;
+  f.x = clamp(f.x + f.vx, 56, W - 56);
+  f.vy += 1.125;
+  f.y += f.vy;
+  if (f.y >= floorY) {
+    f.y = floorY;
+    f.vy = 0;
+    f.jumping = false;
+  }
+}
+
+function strike(attacker, defender, type) {
+  if (attacker.cooldown || attacker.hurt) return;
+  attacker.attack = type === "punch" ? 18 : 24;
+  attacker.cooldown = type === "punch" ? 24 : 34;
+  const reach = type === "punch" ? 62 : 78;
+  const box = {
+    x: attacker.x + (attacker.dir > 0 ? 16 : -reach - 16),
+    y: attacker.y - 112,
+    w: reach,
+    h: type === "punch" ? 42 : 34
+  };
+  if (intersects(box, rect(defender))) {
+    damage(defender, type === "punch" ? 6 : 9, attacker.dir, type.toUpperCase());
+  }
+}
+
+function special(attacker, defender) {
+  if (attacker.cooldown || attacker.energy < 34 || attacker.hurt) return;
+  attacker.energy -= 34;
+  attacker.cooldown = 54;
+  attacker.special = 34;
+  roundText = attacker.data.line;
+  roundTextTimer = 72;
+
+  const kind = attacker.data.special;
+  if (kind === "dash" || kind === "rush") {
+    attacker.vx = attacker.dir * (kind === "dash" ? 15 : 11);
+    setTimeout(() => {
+      if (Math.abs(attacker.x - defender.x) < 118) damage(defender, kind === "dash" ? 16 : 13, attacker.dir, attacker.data.move);
+    }, 120);
+  } else if (kind === "uppercut") {
+    attacker.vy = -22.5;
+    attacker.jumping = true;
+    if (Math.abs(attacker.x - defender.x) < 105) damage(defender, 18, attacker.dir, attacker.data.move);
+  } else if (kind === "cyclone") {
+    for (let i = 0; i < 3; i += 1) {
+      setTimeout(() => {
+        if (Math.abs(attacker.x - defender.x) < 132) damage(defender, 6, attacker.dir, attacker.data.move);
+      }, i * 120);
+    }
+  } else {
+    projectiles.push({
+      x: attacker.x + attacker.dir * 54,
+      y: attacker.y - 92,
+      vx: attacker.dir * (kind === "beam" ? 9 : 7),
+      owner: attacker,
+      color: attacker.data.accent,
+      label: kind === "beam" ? "USA" : "BOOM",
+      damage: kind === "beam" ? 14 : 17,
+      life: 95
+    });
+  }
+}
+
+function stepProjectiles() {
+  projectiles.forEach((p) => {
+    p.x += p.vx;
+    p.life -= 1;
+    const target = p.owner === player ? rival : player;
+    if (intersects({ x: p.x - 18, y: p.y - 14, w: 36, h: 28 }, rect(target))) {
+      damage(target, p.damage, Math.sign(p.vx), p.label);
+      p.life = 0;
+    }
+  });
+  projectiles = projectiles.filter((p) => p.life > 0 && p.x > -80 && p.x < W + 80);
+}
+
+function damage(f, amount, dir, label) {
+  const blocked = f.block && Math.sign(dir) !== f.dir;
+  const actual = blocked ? Math.ceil(amount * 0.28) : amount;
+  f.hp = clamp(f.hp - actual, 0, 100);
+  f.hurt = blocked ? 10 : 22;
+  f.vx = dir * (blocked ? 3 : 8);
+  shake = blocked ? 4 : 9;
+  hitSparks.push({ x: f.x, y: f.y - 92, life: 20, label, blocked });
+}
+
+function draw() {
+  const ox = shake ? Math.round((Math.random() - 0.5) * shake) : 0;
+  const oy = shake ? Math.round((Math.random() - 0.5) * shake) : 0;
+  ctx.save();
+  ctx.translate(ox, oy);
+  drawStage();
+  drawHud();
+  projectiles.forEach(drawProjectile);
+  drawFighter(player);
+  drawFighter(rival);
+  hitSparks.forEach(drawSpark);
+  if (roundTextTimer > 0) drawRoundText();
+  ctx.restore();
+  requestAnimationFrame(loop);
+}
+
+function drawStage() {
+  if (stageImage.complete && stageImage.naturalWidth > 0) {
+    ctx.drawImage(stageImage, 0, 0, W, H);
+  } else {
+    const grad = ctx.createLinearGradient(0, 0, 0, H);
+    grad.addColorStop(0, "#101833");
+    grad.addColorStop(0.62, "#273c65");
+    grad.addColorStop(1, "#12131d");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+  }
+}
+
+function drawHud() {
+  drawHealth(34, 30, player, false);
+  drawHealth(W - 394, 30, rival, true);
+  ctx.fillStyle = "#f5d66f";
+  ctx.fillRect(434, 24, 92, 64);
+  ctx.fillStyle = "#17131b";
+  ctx.fillRect(444, 34, 72, 44);
+  pixelText("92", 464, 45, 4, "#f5d66f");
+  pixelText(player.data.short, 36, 92, 2.4, "#fff4c7");
+  pixelText(rival.data.short, W - 202, 92, 2.4, "#fff4c7");
+}
+
+function drawHealth(x, y, f, flip) {
+  ctx.fillStyle = "#090b12";
+  ctx.fillRect(x - 4, y - 4, 364, 34);
+  ctx.fillStyle = "#661b26";
+  ctx.fillRect(x, y, 356, 26);
+  ctx.fillStyle = f.hp > 35 ? "#f5d66f" : "#ca3341";
+  const width = Math.round(356 * (f.hp / 100));
+  if (flip) ctx.fillRect(x + 356 - width, y, width, 26);
+  else ctx.fillRect(x, y, width, 26);
+  ctx.fillStyle = "#2f7bd1";
+  const energyWidth = Math.round(220 * (f.energy / 100));
+  if (flip) ctx.fillRect(x + 136 + (220 - energyWidth), y + 34, energyWidth, 8);
+  else ctx.fillRect(x, y + 34, energyWidth, 8);
+}
+
+function drawFighter(f) {
+  if (f.data.name === "Washington" && washingtonSprite.complete && washingtonSprite.naturalWidth > 0) {
+    drawWashingtonSprite(f);
+    return;
+  }
+
+  const [coat, pants, skin] = f.data.colors;
+  const r = rect(f);
+  const bob = fighterBob(f);
+  const hurtFlash = f.hurt > 0 && tick % 4 < 2;
+  drawShadow(f, 76);
+  ctx.save();
+  ctx.translate(Math.round(f.x), Math.round(f.y + bob));
+  ctx.scale(f.dir, 1);
+
+  if (f.block) {
+    ctx.fillStyle = "rgba(158, 228, 255, 0.28)";
+    ctx.fillRect(-56, -132, 26, 102);
+  }
+
+  ctx.fillStyle = hurtFlash ? "#ffffff" : pants;
+  ctx.fillRect(-26, -76, 22, 70);
+  ctx.fillRect(8, -76, 22, 70);
+  ctx.fillStyle = "#161820";
+  ctx.fillRect(-28, -8, 28, 10);
+  ctx.fillRect(10, -8, 28, 10);
+
+  ctx.fillStyle = hurtFlash ? "#ffffff" : coat;
+  ctx.fillRect(-34, -132, 68, 70);
+  ctx.fillStyle = f.data.accent;
+  ctx.fillRect(-8, -132, 16, 70);
+  ctx.fillStyle = "#f8e7b0";
+  ctx.fillRect(-18, -118, 36, 14);
+
+  const armY = f.attack > 0 ? -118 : -104;
+  const armReach = f.attack > 0 ? 56 : 30;
+  ctx.fillStyle = hurtFlash ? "#ffffff" : coat;
+  ctx.fillRect(22, armY, armReach, 18);
+  ctx.fillRect(-52, -108, 26, 18);
+  ctx.fillStyle = skin;
+  ctx.fillRect(22 + armReach, armY + 2, 16, 14);
+  ctx.fillRect(-64, -106, 14, 14);
+
+  ctx.fillStyle = skin;
+  ctx.fillRect(-24, -170, 48, 46);
+  ctx.fillStyle = f.data.name === "Lincoln" ? "#111111" : "#e7e7dc";
+  ctx.fillRect(-26, -178, 52, 14);
+  if (f.data.name === "Lincoln") ctx.fillRect(-20, -208, 40, 34);
+  if (f.data.name === "T. Roosevelt") {
+    ctx.fillStyle = "#6b3e1f";
+    ctx.fillRect(-18, -150, 36, 12);
+  }
+  ctx.fillStyle = "#111111";
+  ctx.fillRect(6, -154, 8, 6);
+  ctx.fillStyle = "#5a2b1b";
+  ctx.fillRect(-8, -140, 24, 6);
+
+  if (f.special > 0) {
+    ctx.fillStyle = f.data.accent;
+    ctx.fillRect(-46, -188, 10, 10);
+    ctx.fillRect(38, -196, 14, 14);
+    ctx.fillRect(-8, -210, 12, 12);
+  }
+
+  ctx.restore();
+}
+
+function fighterBob(f) {
+  if (f.jumping || Math.abs(f.vx) > 0.2) return 0;
+  return Math.sin(tick / 38) * 0.8;
+}
+
+function drawShadow(f, width) {
+  const air = Math.max(0, floorY - f.y);
+  const scale = clamp(1 - air / 230, 0.42, 1);
+  const shadowW = Math.round(width * scale);
+  ctx.fillStyle = "rgba(5, 6, 10, 0.78)";
+  ctx.fillRect(Math.round(f.x - shadowW / 2), floorY - 7, shadowW, 10);
+}
+
+function drawWashingtonSprite(f) {
+  const frame = f.attack > 6 && washingtonPunchSprite.complete && washingtonPunchSprite.naturalWidth > 0
+    ? washingtonFrames.punch
+    : washingtonFrames.idle;
+  const bob = fighterBob(f);
+  const hurtFlash = f.hurt > 0 && tick % 4 < 2;
+  const displayH = frame.height;
+  const displayW = Math.round(displayH * (frame.crop.w / frame.crop.h));
+
+  drawShadow(f, 84);
+  ctx.save();
+  ctx.translate(Math.round(f.x), Math.round(f.y + bob));
+  ctx.scale(f.dir, 1);
+
+  if (f.block) {
+    ctx.fillStyle = "rgba(158, 228, 255, 0.28)";
+    ctx.fillRect(-58, -142, 28, 112);
+  }
+
+  ctx.globalAlpha = hurtFlash ? 0.55 : 1;
+  ctx.drawImage(
+    frame.image,
+    frame.crop.x,
+    frame.crop.y,
+    frame.crop.w,
+    frame.crop.h,
+    -Math.round(displayW / 2),
+    -displayH,
+    displayW,
+    displayH
+  );
+  ctx.globalAlpha = 1;
+
+  if (f.special > 0) {
+    ctx.fillStyle = f.data.accent;
+    ctx.fillRect(-48, -190, 10, 10);
+    ctx.fillRect(38, -198, 14, 14);
+    ctx.fillRect(-8, -212, 12, 12);
+  }
+
+  ctx.restore();
+}
+
+function drawProjectile(p) {
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(p.x - 23, p.y - 18, 46, 36);
+  ctx.fillStyle = p.color;
+  ctx.fillRect(p.x - 18, p.y - 13, 36, 26);
+  pixelText(p.label, p.x - 18, p.y - 4, 1.3, "#11131d");
+}
+
+function drawSpark(s) {
+  ctx.fillStyle = s.blocked ? "#9ee4ff" : "#fff4c7";
+  ctx.fillRect(s.x - 30, s.y - 7, 60, 14);
+  ctx.fillRect(s.x - 7, s.y - 30, 14, 60);
+  pixelText(s.blocked ? "BLOCK" : "HIT", s.x - 34, s.y - 48, 2, s.blocked ? "#9ee4ff" : "#ffffff");
+}
+
+function drawRoundText() {
+  const text = roundText.slice(0, 22).toUpperCase();
+  const scale = text.length > 14 ? 2.6 : 3.8;
+  const width = text.length * 26 * (scale / 3);
+  pixelText(text, W / 2 - width / 2, 148, scale, "#fff4c7", "#8b1c2b");
+}
+
+const font = {
+  A: ["111", "101", "111", "101", "101"],
+  B: ["110", "101", "110", "101", "110"],
+  C: ["111", "100", "100", "100", "111"],
+  D: ["110", "101", "101", "101", "110"],
+  E: ["111", "100", "110", "100", "111"],
+  F: ["111", "100", "110", "100", "100"],
+  G: ["111", "100", "101", "101", "111"],
+  H: ["101", "101", "111", "101", "101"],
+  I: ["111", "010", "010", "010", "111"],
+  J: ["001", "001", "001", "101", "111"],
+  K: ["101", "101", "110", "101", "101"],
+  L: ["100", "100", "100", "100", "111"],
+  M: ["101", "111", "111", "101", "101"],
+  N: ["101", "111", "111", "111", "101"],
+  O: ["111", "101", "101", "101", "111"],
+  P: ["111", "101", "111", "100", "100"],
+  Q: ["111", "101", "101", "111", "001"],
+  R: ["111", "101", "111", "110", "101"],
+  S: ["111", "100", "111", "001", "111"],
+  T: ["111", "010", "010", "010", "010"],
+  U: ["101", "101", "101", "101", "111"],
+  V: ["101", "101", "101", "101", "010"],
+  W: ["101", "101", "111", "111", "101"],
+  X: ["101", "101", "010", "101", "101"],
+  Y: ["101", "101", "010", "010", "010"],
+  Z: ["111", "001", "010", "100", "111"],
+  "0": ["111", "101", "101", "101", "111"],
+  "1": ["010", "110", "010", "010", "111"],
+  "2": ["111", "001", "111", "100", "111"],
+  "3": ["111", "001", "111", "001", "111"],
+  "4": ["101", "101", "111", "001", "001"],
+  "5": ["111", "100", "111", "001", "111"],
+  "6": ["111", "100", "111", "101", "111"],
+  "7": ["111", "001", "001", "010", "010"],
+  "8": ["111", "101", "111", "101", "111"],
+  "9": ["111", "101", "111", "001", "111"],
+  " ": ["000", "000", "000", "000", "000"],
+  "'": ["010", "010", "000", "000", "000"],
+  ".": ["000", "000", "000", "000", "010"],
+  "!": ["010", "010", "010", "000", "010"]
+};
+
+function pixelText(text, x, y, scale, color, shadow) {
+  const size = scale;
+  if (shadow) pixelText(text, x + size * 2, y + size * 2, scale, shadow);
+  ctx.fillStyle = color;
+  [...text].forEach((char, i) => {
+    const glyph = font[char] || font[" "];
+    glyph.forEach((row, yy) => {
+      [...row].forEach((bit, xx) => {
+        if (bit === "1") ctx.fillRect(Math.round(x + i * size * 5 + xx * size), Math.round(y + yy * size), Math.ceil(size), Math.ceil(size));
+      });
+    });
+  });
+}
+
+function loop() {
+  update();
+  draw();
+}
+
+window.addEventListener("keydown", (event) => {
+  keys.add(event.code);
+  if (event.code === "Enter" && !running) resetMatch();
+  if (["Space", "KeyW", "KeyA", "KeyS", "KeyD", "KeyJ", "KeyK", "KeyL"].includes(event.code)) {
+    event.preventDefault();
+  }
+});
+
+window.addEventListener("keyup", (event) => keys.delete(event.code));
+playerSelect.addEventListener("change", updateMoveCards);
+rivalSelect.addEventListener("change", updateMoveCards);
+startBtn.addEventListener("click", resetMatch);
+
+populateSelects();
+loop();
