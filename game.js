@@ -34,7 +34,7 @@ const washingtonKickSprite = new Image();
 washingtonKickSprite.src = "assets/washington-kick.png";
 const washingtonCrouchSprite = new Image();
 washingtonCrouchSprite.src = "assets/washington-crouch.png";
-const washingtonWalkSprites = [1, 2, 3, 4].map((frame) => {
+const washingtonWalkSprites = [1, 2, 3, 4, 5].map((frame) => {
   const image = new Image();
   image.src = `assets/washington-walk-${frame}.png`;
   return image;
@@ -66,10 +66,11 @@ const washingtonFrames = {
   }
 };
 const washingtonWalkFrames = [
-  { image: washingtonWalkSprites[0], crop: { x: 0, y: 80, w: 434, h: 555 }, height: 238, offsetX: 0 },
-  { image: washingtonWalkSprites[1], crop: { x: 0, y: 80, w: 435, h: 555 }, height: 238, offsetX: 0 },
-  { image: washingtonWalkSprites[2], crop: { x: 0, y: 80, w: 434, h: 555 }, height: 238, offsetX: 0 },
-  { image: washingtonWalkSprites[3], crop: { x: 0, y: 80, w: 435, h: 555 }, height: 238, offsetX: 0 }
+  { image: washingtonWalkSprites[0], crop: { x: 0, y: 125, w: 362, h: 510 }, height: 220, offsetX: 0 },
+  { image: washingtonWalkSprites[1], crop: { x: 0, y: 125, w: 362, h: 510 }, height: 220, offsetX: 0 },
+  { image: washingtonWalkSprites[2], crop: { x: 0, y: 125, w: 362, h: 510 }, height: 220, offsetX: 0 },
+  { image: washingtonWalkSprites[3], crop: { x: 0, y: 125, w: 362, h: 510 }, height: 220, offsetX: 0 },
+  { image: washingtonWalkSprites[4], crop: { x: 0, y: 125, w: 330, h: 510 }, height: 220, offsetX: -4 }
 ];
 
 const presidents = [
