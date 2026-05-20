@@ -33,6 +33,8 @@ const washingtonKickSprite = new Image();
 washingtonKickSprite.src = "assets/washington-kick.png";
 const washingtonCrouchSprite = new Image();
 washingtonCrouchSprite.src = "assets/washington-crouch.png";
+const washingtonWalkSprite = new Image();
+washingtonWalkSprite.src = "assets/washington-walk.png";
 const washingtonFrames = {
   idle: {
     image: washingtonSprite,
@@ -59,6 +61,13 @@ const washingtonFrames = {
     offsetX: 0
   }
 };
+const washingtonWalkFrames = [
+  { image: washingtonWalkSprite, crop: { x: 94, y: 54, w: 332, h: 600 }, height: 232, offsetX: -2 },
+  { image: washingtonWalkSprite, crop: { x: 522, y: 46, w: 334, h: 607 }, height: 232, offsetX: 0 },
+  { image: washingtonWalkSprite, crop: { x: 930, y: 43, w: 317, h: 618 }, height: 232, offsetX: 0 },
+  { image: washingtonWalkSprite, crop: { x: 1332, y: 43, w: 343, h: 608 }, height: 232, offsetX: 2 },
+  { image: washingtonWalkSprite, crop: { x: 1758, y: 46, w: 302, h: 608 }, height: 232, offsetX: 0 }
+];
 
 const presidents = [
   {
@@ -538,6 +547,9 @@ function washingtonFrameFor(f) {
   }
   if (f.crouching && washingtonCrouchSprite.complete && washingtonCrouchSprite.naturalWidth > 0) {
     return washingtonFrames.crouch;
+  }
+  if (!f.jumping && Math.abs(f.vx) > 0.2 && washingtonWalkSprite.complete && washingtonWalkSprite.naturalWidth > 0) {
+    return washingtonWalkFrames[Math.floor(tick / 7) % washingtonWalkFrames.length];
   }
   return washingtonFrames.idle;
 }
