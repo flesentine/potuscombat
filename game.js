@@ -22,6 +22,7 @@ const rivalRetreatSpeed = 2.5;
 const jumpVelocity = -15.8;
 const jumpRiseGravity = 0.92;
 const jumpFallGravity = 1.35;
+const walkFrameTicks = 11;
 const keys = new Set();
 const stageImage = new Image();
 stageImage.src = "assets/presidential-stage-16bit.png";
@@ -549,9 +550,16 @@ function washingtonFrameFor(f) {
     return washingtonFrames.crouch;
   }
   if (!f.jumping && Math.abs(f.vx) > 0.2 && washingtonWalkSprite.complete && washingtonWalkSprite.naturalWidth > 0) {
-    return washingtonWalkFrames[Math.floor(tick / 7) % washingtonWalkFrames.length];
+    return washingtonWalkFrameFor(f);
   }
   return washingtonFrames.idle;
+}
+
+function washingtonWalkFrameFor(f) {
+  const rawFrame = Math.floor(tick / walkFrameTicks) % washingtonWalkFrames.length;
+  const movingForward = Math.sign(f.vx) === f.dir;
+  const frameIndex = movingForward ? rawFrame : washingtonWalkFrames.length - 1 - rawFrame;
+  return washingtonWalkFrames[frameIndex];
 }
 
 function drawProjectile(p) {
