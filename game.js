@@ -16,6 +16,12 @@ const p2Move = document.getElementById("p2Move");
 const W = canvas.width;
 const H = canvas.height;
 const floorY = 456;
+const playerSpeed = 4.7;
+const rivalAdvanceSpeed = 2.7;
+const rivalRetreatSpeed = 2.5;
+const jumpVelocity = -15.8;
+const jumpRiseGravity = 0.92;
+const jumpFallGravity = 1.35;
 const keys = new Set();
 const stageImage = new Image();
 stageImage.src = "assets/presidential-stage-16bit.png";
@@ -23,16 +29,26 @@ const washingtonSprite = new Image();
 washingtonSprite.src = "assets/washington-idle.png";
 const washingtonPunchSprite = new Image();
 washingtonPunchSprite.src = "assets/washington-punch.png";
+const washingtonKickSprite = new Image();
+washingtonKickSprite.src = "assets/washington-kick.png";
 const washingtonFrames = {
   idle: {
     image: washingtonSprite,
     crop: { x: 247, y: 55, w: 668, h: 1174 },
-    height: 238
+    height: 238,
+    offsetX: 0
   },
   punch: {
     image: washingtonPunchSprite,
     crop: { x: 140, y: 83, w: 950, h: 1100 },
-    height: 238
+    height: 238,
+    offsetX: 12
+  },
+  kick: {
+    image: washingtonKickSprite,
+    crop: { x: 109, y: 81, w: 984, h: 1105 },
+    height: 238,
+    offsetX: 20
   }
 };
 
@@ -125,6 +141,7 @@ function makeFighter(data, x, dir, human) {
     energy: 100,
     cooldown: 0,
     attack: 0,
+    attackType: "",
     special: 0,
     block: false,
     hurt: 0,
@@ -203,13 +220,12 @@ function update() {
 }
 
 function controlPlayer() {
-  const speed = 6.3;
   player.vx = 0;
-  if (keys.has("KeyA")) player.vx -= speed;
-  if (keys.has("KeyD")) player.vx += speed;
+  if (keys.has("KeyA")) player.vx -= playerSpeed;
+  if (keys.has("KeyD")) player.vx += playerSpeed;
   player.block = keys.has("Space") && player.cooldown < 8;
   if (keys.has("KeyW") && !player.jumping) {
-    player.vy = -19.5;
+    player.vy = jumpVelocity;
     player.jumping = true;
   }
   if (keys.has("KeyJ")) strike(player, rival, "punch");
@@ -222,8 +238,8 @@ function controlAI() {
   rival.block = false;
   rival.vx = 0;
   if (rival.cooldown > 0 || rival.hurt > 0) return;
-  if (dist > 145) rival.vx = player.x < rival.x ? -3.6 : 3.6;
-  if (dist < 88) rival.vx = player.x < rival.x ? 3.3 : -3.3;
+  if (dist > 145) rival.vx = player.x < rival.x ? -rivalAdvanceSpeed : rivalAdvanceSpeed;
+  if (dist < 88) rival.vx = player.x < rival.x ? rivalRetreatSpeed : -rivalRetreatSpeed;
   if (tick % 75 === 0 && dist < 110) strike(rival, player, Math.random() > 0.5 ? "punch" : "kick");
   if (tick % 145 === 0 && dist < 310) special(rival, player);
   if (tick % 190 === 0 && Math.random() > 0.55) rival.block = true;
@@ -233,12 +249,13 @@ function stepFighter(f, foe) {
   f.dir = foe.x >= f.x ? 1 : -1;
   f.cooldown = Math.max(0, f.cooldown - 1);
   f.attack = Math.max(0, f.attack - 1);
+  if (f.attack === 0) f.attackType = "";
   f.special = Math.max(0, f.special - 1);
   f.hurt = Math.max(0, f.hurt - 1);
   f.energy = clamp(f.energy + 0.16, 0, 100);
   if (f.hurt > 0) f.vx *= 0.88;
   f.x = clamp(f.x + f.vx, 56, W - 56);
-  f.vy += 1.125;
+  f.vy += f.vy < 0 ? jumpRiseGravity : jumpFallGravity;
   f.y += f.vy;
   if (f.y >= floorY) {
     f.y = floorY;
@@ -250,6 +267,7 @@ function stepFighter(f, foe) {
 function strike(attacker, defender, type) {
   if (attacker.cooldown || attacker.hurt) return;
   attacker.attack = type === "punch" ? 18 : 24;
+  attacker.attackType = type;
   attacker.cooldown = type === "punch" ? 24 : 34;
   const reach = type === "punch" ? 62 : 78;
   const box = {
@@ -278,7 +296,7 @@ function special(attacker, defender) {
       if (Math.abs(attacker.x - defender.x) < 118) damage(defender, kind === "dash" ? 16 : 13, attacker.dir, attacker.data.move);
     }, 120);
   } else if (kind === "uppercut") {
-    attacker.vy = -22.5;
+    attacker.vy = jumpVelocity * 1.15;
     attacker.jumping = true;
     if (Math.abs(attacker.x - defender.x) < 105) damage(defender, 18, attacker.dir, attacker.data.move);
   } else if (kind === "cyclone") {
@@ -461,9 +479,7 @@ function drawShadow(f, width) {
 }
 
 function drawWashingtonSprite(f) {
-  const frame = f.attack > 6 && washingtonPunchSprite.complete && washingtonPunchSprite.naturalWidth > 0
-    ? washingtonFrames.punch
-    : washingtonFrames.idle;
+  const frame = washingtonFrameFor(f);
   const bob = fighterBob(f);
   const hurtFlash = f.hurt > 0 && tick % 4 < 2;
   const displayH = frame.height;
@@ -486,7 +502,7 @@ function drawWashingtonSprite(f) {
     frame.crop.y,
     frame.crop.w,
     frame.crop.h,
-    -Math.round(displayW / 2),
+    -Math.round(displayW / 2) + frame.offsetX,
     -displayH,
     displayW,
     displayH
@@ -501,6 +517,16 @@ function drawWashingtonSprite(f) {
   }
 
   ctx.restore();
+}
+
+function washingtonFrameFor(f) {
+  if (f.attack > 6 && f.attackType === "kick" && washingtonKickSprite.complete && washingtonKickSprite.naturalWidth > 0) {
+    return washingtonFrames.kick;
+  }
+  if (f.attack > 6 && f.attackType === "punch" && washingtonPunchSprite.complete && washingtonPunchSprite.naturalWidth > 0) {
+    return washingtonFrames.punch;
+  }
+  return washingtonFrames.idle;
 }
 
 function drawProjectile(p) {
