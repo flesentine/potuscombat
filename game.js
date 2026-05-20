@@ -49,6 +49,11 @@ const washingtonBackwalkSprites = [1, 2, 3, 4, 5].map((frame) => {
   image.src = `assets/washington-backwalk-${frame}.png`;
   return image;
 });
+const washingtonJumpSprites = [1, 2, 3, 4, 5, 6].map((frame) => {
+  const image = new Image();
+  image.src = `assets/washington-jump-${frame}.png`;
+  return image;
+});
 const washingtonFrames = {
   idle: {
     image: washingtonSprite,
@@ -101,6 +106,12 @@ const washingtonBackwalkFrames = washingtonBackwalkSprites.map((image) => ({
   offsetX: 0
 }));
 const washingtonBackwalkCycle = [0, 1, 2, 3, 4, 3, 2, 1];
+const washingtonJumpFrames = washingtonJumpSprites.map((image) => ({
+  image,
+  crop: { x: 0, y: 0, w: 380, h: 600 },
+  height: 220,
+  offsetX: 0
+}));
 
 const presidents = [
   {
@@ -586,6 +597,9 @@ function washingtonFrameFor(f) {
   if (f.attack > 6 && f.attackType === "punch" && washingtonPunchSprite.complete && washingtonPunchSprite.naturalWidth > 0) {
     return washingtonFrames.punch;
   }
+  if (f.jumping && washingtonJumpSprites.every((image) => image.complete && image.naturalWidth > 0)) {
+    return washingtonJumpFrameFor(f);
+  }
   if (f.crouching && washingtonCrouchSprite.complete && washingtonCrouchSprite.naturalWidth > 0) {
     return washingtonFrames.crouch;
   }
@@ -598,6 +612,15 @@ function washingtonFrameFor(f) {
 function washingtonMoveSpritesReady() {
   return washingtonWalkSprites.every((image) => image.complete && image.naturalWidth > 0)
     && washingtonBackwalkSprites.every((image) => image.complete && image.naturalWidth > 0);
+}
+
+function washingtonJumpFrameFor(f) {
+  if (f.vy < -10) return washingtonJumpFrames[0];
+  if (f.vy < -4) return washingtonJumpFrames[1];
+  if (f.vy < -0.8) return washingtonJumpFrames[2];
+  if (f.vy < 2.8) return washingtonJumpFrames[3];
+  if (f.vy < 9) return washingtonJumpFrames[4];
+  return washingtonJumpFrames[5];
 }
 
 function washingtonWalkFrameFor(f) {
