@@ -31,6 +31,8 @@ const washingtonPunchSprite = new Image();
 washingtonPunchSprite.src = "assets/washington-punch.png";
 const washingtonKickSprite = new Image();
 washingtonKickSprite.src = "assets/washington-kick.png";
+const washingtonCrouchSprite = new Image();
+washingtonCrouchSprite.src = "assets/washington-crouch.png";
 const washingtonFrames = {
   idle: {
     image: washingtonSprite,
@@ -49,6 +51,12 @@ const washingtonFrames = {
     crop: { x: 109, y: 81, w: 984, h: 1105 },
     height: 238,
     offsetX: 20
+  },
+  crouch: {
+    image: washingtonCrouchSprite,
+    crop: { x: 221, y: 224, w: 756, h: 765 },
+    height: 156,
+    offsetX: 0
   }
 };
 
@@ -145,6 +153,7 @@ function makeFighter(data, x, dir, human) {
     special: 0,
     block: false,
     hurt: 0,
+    crouching: false,
     jumping: false,
     wins: 0
   };
@@ -220,11 +229,12 @@ function update() {
 }
 
 function controlPlayer() {
+  player.crouching = keys.has("KeyS") && !player.jumping;
   player.vx = 0;
-  if (keys.has("KeyA")) player.vx -= playerSpeed;
-  if (keys.has("KeyD")) player.vx += playerSpeed;
+  if (!player.crouching && keys.has("KeyA")) player.vx -= playerSpeed;
+  if (!player.crouching && keys.has("KeyD")) player.vx += playerSpeed;
   player.block = keys.has("Space") && player.cooldown < 8;
-  if (keys.has("KeyW") && !player.jumping) {
+  if (keys.has("KeyW") && !player.jumping && !player.crouching) {
     player.vy = jumpVelocity;
     player.jumping = true;
   }
@@ -525,6 +535,9 @@ function washingtonFrameFor(f) {
   }
   if (f.attack > 6 && f.attackType === "punch" && washingtonPunchSprite.complete && washingtonPunchSprite.naturalWidth > 0) {
     return washingtonFrames.punch;
+  }
+  if (f.crouching && washingtonCrouchSprite.complete && washingtonCrouchSprite.naturalWidth > 0) {
+    return washingtonFrames.crouch;
   }
   return washingtonFrames.idle;
 }
