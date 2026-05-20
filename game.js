@@ -22,7 +22,7 @@ const rivalRetreatSpeed = 2.5;
 const jumpVelocity = -15.8;
 const jumpRiseGravity = 0.92;
 const jumpFallGravity = 1.35;
-const walkFrameTicks = 11;
+const walkFrameTicks = 8;
 const keys = new Set();
 const stageImage = new Image();
 stageImage.src = "assets/presidential-stage-16bit.png";
@@ -34,7 +34,7 @@ const washingtonKickSprite = new Image();
 washingtonKickSprite.src = "assets/washington-kick.png";
 const washingtonCrouchSprite = new Image();
 washingtonCrouchSprite.src = "assets/washington-crouch.png";
-const washingtonWalkSprites = [1, 2, 3, 4, 5].map((frame) => {
+const washingtonWalkSprites = [1, 2, 3, 4].map((frame) => {
   const image = new Image();
   image.src = `assets/washington-walk-${frame}.png`;
   return image;
@@ -66,11 +66,10 @@ const washingtonFrames = {
   }
 };
 const washingtonWalkFrames = [
-  { image: washingtonWalkSprites[0], crop: { x: 134, y: 100, w: 888, h: 1077 }, height: 238, offsetX: 0 },
-  { image: washingtonWalkSprites[1], crop: { x: 232, y: 91, w: 680, h: 1030 }, height: 238, offsetX: 0 },
-  { image: washingtonWalkSprites[2], crop: { x: 241, y: 64, w: 699, h: 1098 }, height: 238, offsetX: 0 },
-  { image: washingtonWalkSprites[3], crop: { x: 226, y: 69, w: 682, h: 1068 }, height: 238, offsetX: 0 },
-  { image: washingtonWalkSprites[4], crop: { x: 172, y: 81, w: 747, h: 1094 }, height: 238, offsetX: 0 }
+  { image: washingtonWalkSprites[0], crop: { x: 0, y: 80, w: 434, h: 555 }, height: 238, offsetX: 0 },
+  { image: washingtonWalkSprites[1], crop: { x: 0, y: 80, w: 435, h: 555 }, height: 238, offsetX: 0 },
+  { image: washingtonWalkSprites[2], crop: { x: 0, y: 80, w: 434, h: 555 }, height: 238, offsetX: 0 },
+  { image: washingtonWalkSprites[3], crop: { x: 0, y: 80, w: 435, h: 555 }, height: 238, offsetX: 0 }
 ];
 
 const presidents = [
