@@ -34,6 +34,10 @@ const washingtonKickSprite = new Image();
 washingtonKickSprite.src = "assets/washington-kick.png";
 const washingtonCrouchSprite = new Image();
 washingtonCrouchSprite.src = "assets/washington-crouch.png";
+const washingtonCrouchPunchSprite = new Image();
+washingtonCrouchPunchSprite.src = "assets/washington-crouch-punch.png";
+const washingtonCrouchKickSprite = new Image();
+washingtonCrouchKickSprite.src = "assets/washington-crouch-kick.png";
 const washingtonWalkSprites = [1, 2, 3, 4, 5].map((frame) => {
   const image = new Image();
   image.src = `assets/washington-walk-${frame}.png`;
@@ -63,6 +67,18 @@ const washingtonFrames = {
     crop: { x: 221, y: 224, w: 756, h: 765 },
     height: 156,
     offsetX: 0
+  },
+  crouchPunch: {
+    image: washingtonCrouchPunchSprite,
+    crop: { x: 122, y: 213, w: 1127, h: 790 },
+    height: 158,
+    offsetX: 34
+  },
+  crouchKick: {
+    image: washingtonCrouchKickSprite,
+    crop: { x: 75, y: 153, w: 1262, h: 780 },
+    height: 156,
+    offsetX: 48
   }
 };
 const washingtonWalkFrames = [
@@ -289,13 +305,15 @@ function stepFighter(f, foe) {
 
 function strike(attacker, defender, type) {
   if (attacker.cooldown || attacker.hurt) return;
+  const crouchStrike = attacker.crouching && !attacker.jumping;
   attacker.attack = type === "punch" ? 18 : 24;
-  attacker.attackType = type;
+  attacker.attackType = crouchStrike ? `crouch-${type}` : type;
   attacker.cooldown = type === "punch" ? 24 : 34;
-  const reach = type === "punch" ? 62 : 78;
+  const reach = crouchStrike ? (type === "punch" ? 76 : 106) : (type === "punch" ? 62 : 78);
+  const boxY = crouchStrike ? attacker.y - 76 : attacker.y - 112;
   const box = {
     x: attacker.x + (attacker.dir > 0 ? 16 : -reach - 16),
-    y: attacker.y - 112,
+    y: boxY,
     w: reach,
     h: type === "punch" ? 42 : 34
   };
@@ -543,6 +561,12 @@ function drawWashingtonSprite(f) {
 }
 
 function washingtonFrameFor(f) {
+  if (f.attack > 6 && f.attackType === "crouch-kick" && washingtonCrouchKickSprite.complete && washingtonCrouchKickSprite.naturalWidth > 0) {
+    return washingtonFrames.crouchKick;
+  }
+  if (f.attack > 6 && f.attackType === "crouch-punch" && washingtonCrouchPunchSprite.complete && washingtonCrouchPunchSprite.naturalWidth > 0) {
+    return washingtonFrames.crouchPunch;
+  }
   if (f.attack > 6 && f.attackType === "kick" && washingtonKickSprite.complete && washingtonKickSprite.naturalWidth > 0) {
     return washingtonFrames.kick;
   }
