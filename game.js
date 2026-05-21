@@ -24,6 +24,8 @@ const jumpRiseGravity = 0.72;
 const jumpFallGravity = 1.05;
 const walkFrameTicks = 8;
 const backwalkFrameTicks = 9;
+const knockdownFrameTicks = 8;
+const knockdownDuration = 40;
 const keys = new Set();
 const stageImage = new Image();
 stageImage.src = "assets/presidential-stage-16bit.png";
@@ -41,6 +43,11 @@ const washingtonCrouchKickSprite = new Image();
 washingtonCrouchKickSprite.src = "assets/washington-crouch-kick.png";
 const washingtonHitSprite = new Image();
 washingtonHitSprite.src = "assets/washington-hit.png";
+const washingtonKnockdownSprites = [1, 2, 3, 4, 5].map((frame) => {
+  const image = new Image();
+  image.src = `assets/washington-knockdown-${frame}.png`;
+  return image;
+});
 const washingtonWalkSprites = [1, 2, 3, 4, 5].map((frame) => {
   const image = new Image();
   image.src = `assets/washington-walk-${frame}.png`;
@@ -120,6 +127,13 @@ const washingtonJumpFrames = washingtonJumpSprites.map((image) => ({
   height: 300,
   offsetX: 0
 }));
+const washingtonKnockdownFrames = [
+  { image: washingtonKnockdownSprites[0], crop: { x: 37, y: 180, w: 357, h: 288 }, height: 190, offsetX: -4, lift: 44 },
+  { image: washingtonKnockdownSprites[1], crop: { x: 7, y: 238, w: 419, h: 278 }, height: 166, offsetX: 2, lift: 24 },
+  { image: washingtonKnockdownSprites[2], crop: { x: 59, y: 337, w: 375, h: 186 }, height: 124, offsetX: 6, lift: 6 },
+  { image: washingtonKnockdownSprites[3], crop: { x: 39, y: 367, w: 380, h: 164 }, height: 112, offsetX: 4, lift: 0 },
+  { image: washingtonKnockdownSprites[4], crop: { x: 32, y: 441, w: 400, h: 90 }, height: 64, offsetX: 0, lift: 0 }
+];
 
 const presidents = [
   {
@@ -215,6 +229,7 @@ function makeFighter(data, x, dir, human) {
     block: false,
     hurt: 0,
     hitReact: 0,
+    knockdown: 0,
     crouching: false,
     jumping: false,
     wins: 0
@@ -325,7 +340,9 @@ function stepFighter(f, foe) {
   f.special = Math.max(0, f.special - 1);
   f.hurt = Math.max(0, f.hurt - 1);
   f.hitReact = Math.max(0, f.hitReact - 1);
+  f.knockdown = Math.max(0, f.knockdown - 1);
   f.energy = clamp(f.energy + 0.16, 0, 100);
+  if (f.knockdown > 0) f.crouching = false;
   if (f.hurt > 0) f.vx *= 0.88;
   f.x = clamp(f.x + f.vx, 56, W - 56);
   f.vy += f.vy < 0 ? jumpRiseGravity : jumpFallGravity;
@@ -410,9 +427,11 @@ function stepProjectiles() {
 function damage(f, amount, dir, label) {
   const blocked = f.block && Math.sign(dir) !== f.dir;
   const actual = blocked ? Math.ceil(amount * 0.28) : amount;
+  const knocksDown = !blocked && (actual >= 9 || f.hp - actual <= 0);
   f.hp = clamp(f.hp - actual, 0, 100);
-  f.hurt = blocked ? 10 : 22;
-  f.hitReact = blocked ? 0 : 14;
+  f.hurt = blocked ? 10 : knocksDown ? knockdownDuration : 22;
+  f.hitReact = blocked || knocksDown ? 0 : 14;
+  f.knockdown = knocksDown ? knockdownDuration : 0;
   f.vx = dir * (blocked ? 3 : 8);
   shake = blocked ? 4 : 9;
   hitSparks.push({ x: f.x, y: f.y - 92, life: 20, label, blocked });
@@ -557,9 +576,10 @@ function drawShadow(f, width) {
 function drawWashingtonSprite(f) {
   const frame = washingtonFrameFor(f);
   const bob = fighterBob(f);
-  const hurtFlash = f.hurt > 0 && tick % 4 < 2;
+  const hurtFlash = f.hurt > 0 && f.knockdown === 0 && tick % 4 < 2;
   const displayH = frame.height;
   const displayW = Math.round(displayH * (frame.crop.w / frame.crop.h));
+  const lift = frame.lift || 0;
 
   drawShadow(f, 84);
   ctx.save();
@@ -579,7 +599,7 @@ function drawWashingtonSprite(f) {
     frame.crop.w,
     frame.crop.h,
     -Math.round(displayW / 2) + frame.offsetX,
-    -displayH,
+    -displayH - lift,
     displayW,
     displayH
   );
@@ -596,6 +616,9 @@ function drawWashingtonSprite(f) {
 }
 
 function washingtonFrameFor(f) {
+  if (f.knockdown > 0 && washingtonKnockdownSprites.every((image) => image.complete && image.naturalWidth > 0)) {
+    return washingtonKnockdownFrameFor(f);
+  }
   if (f.hitReact > 0 && washingtonHitSprite.complete && washingtonHitSprite.naturalWidth > 0) {
     return washingtonFrames.hit;
   }
@@ -635,6 +658,12 @@ function washingtonJumpFrameFor(f) {
   if (f.vy < 2.8) return washingtonJumpFrames[3];
   if (f.vy < 9) return washingtonJumpFrames[4];
   return washingtonJumpFrames[5];
+}
+
+function washingtonKnockdownFrameFor(f) {
+  const elapsed = knockdownDuration - f.knockdown;
+  const frameIndex = clamp(Math.floor(elapsed / knockdownFrameTicks), 0, washingtonKnockdownFrames.length - 1);
+  return washingtonKnockdownFrames[frameIndex];
 }
 
 function washingtonWalkFrameFor(f) {
