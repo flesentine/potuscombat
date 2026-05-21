@@ -24,9 +24,10 @@ const jumpRiseGravity = 0.72;
 const jumpFallGravity = 1.05;
 const walkFrameTicks = 8;
 const backwalkFrameTicks = 9;
-const knockdownFrameTicks = 8;
-const knockdownDuration = 40;
-const knockoutLaunchVelocity = -8.8;
+const knockdownFrameTicks = 12;
+const knockdownDuration = 60;
+const knockoutLaunchVelocity = -10.8;
+const knockoutSlideSpeed = 12.5;
 const keys = new Set();
 const stageImage = new Image();
 stageImage.src = "assets/presidential-stage-16bit.png";
@@ -370,7 +371,8 @@ function stepFighter(f, foe) {
   f.knockdown = Math.max(0, f.knockdown - 1);
   f.energy = clamp(f.energy + 0.16, 0, 100);
   if (f.knockdown > 0) f.crouching = false;
-  if (f.hurt > 0) f.vx *= 0.88;
+  if (f.knockdown > 1) f.vx *= 0.97;
+  else if (f.hurt > 0) f.vx *= 0.88;
   f.x = clamp(f.x + f.vx, 56, W - 56);
   f.vy += f.vy < 0 ? jumpRiseGravity : jumpFallGravity;
   f.y += f.vy;
@@ -464,7 +466,7 @@ function damage(f, amount, dir, label) {
     f.crouching = false;
     f.vy = knockoutLaunchVelocity;
   }
-  f.vx = dir * (blocked ? 3 : 8);
+  f.vx = dir * (blocked ? 3 : knocksDown ? knockoutSlideSpeed : 8);
   shake = blocked ? 4 : 9;
   hitSparks.push({ x: f.x, y: f.y - 92, life: 20, label, blocked });
 }
