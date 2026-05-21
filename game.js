@@ -202,6 +202,7 @@ let player = makeFighter(presidents[0], 190, 1, true);
 let rival = makeFighter(presidents[1], 730, -1, false);
 let running = false;
 let gameOver = false;
+let roundEndQueued = false;
 let roundText = "SELECT YOUR COMMANDER";
 let roundTextTimer = 999;
 let shake = 0;
@@ -258,6 +259,7 @@ function resetMatch() {
   roundTextTimer = 130;
   running = true;
   gameOver = false;
+  roundEndQueued = false;
   overlay.classList.add("hidden");
   updateMoveCards();
 }
@@ -287,21 +289,39 @@ function update() {
   tick += 1;
   if (!running) return;
 
-  controlPlayer();
-  controlAI();
+  if (!gameOver) {
+    controlPlayer();
+    controlAI();
+  }
   stepFighter(player, rival);
   stepFighter(rival, player);
-  stepProjectiles();
+  if (!gameOver) stepProjectiles();
   hitSparks = hitSparks.filter((s) => --s.life > 0);
   shake = Math.max(0, shake - 1);
   roundTextTimer = Math.max(0, roundTextTimer - 1);
 
   if (!gameOver && (player.hp <= 0 || rival.hp <= 0)) {
     gameOver = true;
-    running = false;
+    const defeated = player.hp <= 0 ? player : rival;
+    defeated.attack = 0;
+    defeated.attackType = "";
+    defeated.hitReact = 0;
+    defeated.knockdown = knockdownDuration;
+    defeated.crouching = false;
     roundText = player.hp > rival.hp ? "PLAYER WINS" : "RIVAL WINS";
     roundTextTimer = 999;
-    setTimeout(() => overlay.classList.remove("hidden"), 900);
+  }
+
+  if (gameOver) {
+    const defeated = player.hp <= 0 ? player : rival;
+    if (defeated.knockdown <= 1) {
+      defeated.knockdown = 1;
+      running = false;
+      if (!roundEndQueued) {
+        roundEndQueued = true;
+        setTimeout(() => overlay.classList.remove("hidden"), 900);
+      }
+    }
   }
 }
 
@@ -427,7 +447,7 @@ function stepProjectiles() {
 function damage(f, amount, dir, label) {
   const blocked = f.block && Math.sign(dir) !== f.dir;
   const actual = blocked ? Math.ceil(amount * 0.28) : amount;
-  const knocksDown = !blocked && (actual >= 9 || f.hp - actual <= 0);
+  const knocksDown = f.hp - actual <= 0;
   f.hp = clamp(f.hp - actual, 0, 100);
   f.hurt = blocked ? 10 : knocksDown ? knockdownDuration : 22;
   f.hitReact = blocked || knocksDown ? 0 : 14;
