@@ -39,6 +39,8 @@ const washingtonCrouchPunchSprite = new Image();
 washingtonCrouchPunchSprite.src = "assets/washington-crouch-punch.png";
 const washingtonCrouchKickSprite = new Image();
 washingtonCrouchKickSprite.src = "assets/washington-crouch-kick.png";
+const washingtonHitSprite = new Image();
+washingtonHitSprite.src = "assets/washington-hit.png";
 const washingtonWalkSprites = [1, 2, 3, 4, 5].map((frame) => {
   const image = new Image();
   image.src = `assets/washington-walk-${frame}.png`;
@@ -90,19 +92,25 @@ const washingtonFrames = {
     crop: { x: 75, y: 153, w: 1262, h: 780 },
     height: 156,
     offsetX: 48
+  },
+  hit: {
+    image: washingtonHitSprite,
+    crop: { x: 214, y: 131, w: 767, h: 1049 },
+    height: 238,
+    offsetX: -2
   }
 };
 const washingtonWalkFrames = [
-  { image: washingtonWalkSprites[0], crop: { x: 0, y: 125, w: 362, h: 510 }, height: 220, offsetX: 0 },
-  { image: washingtonWalkSprites[1], crop: { x: 0, y: 125, w: 362, h: 510 }, height: 220, offsetX: 0 },
-  { image: washingtonWalkSprites[2], crop: { x: 0, y: 125, w: 362, h: 510 }, height: 220, offsetX: 0 },
-  { image: washingtonWalkSprites[3], crop: { x: 0, y: 125, w: 362, h: 510 }, height: 220, offsetX: 0 },
-  { image: washingtonWalkSprites[4], crop: { x: 0, y: 125, w: 330, h: 510 }, height: 220, offsetX: -4 }
+  { image: washingtonWalkSprites[0], crop: { x: 0, y: 125, w: 362, h: 510 }, height: 238, offsetX: 0 },
+  { image: washingtonWalkSprites[1], crop: { x: 0, y: 125, w: 362, h: 510 }, height: 238, offsetX: 0 },
+  { image: washingtonWalkSprites[2], crop: { x: 0, y: 125, w: 362, h: 510 }, height: 238, offsetX: 0 },
+  { image: washingtonWalkSprites[3], crop: { x: 0, y: 125, w: 362, h: 510 }, height: 238, offsetX: 0 },
+  { image: washingtonWalkSprites[4], crop: { x: 0, y: 125, w: 330, h: 510 }, height: 238, offsetX: -4 }
 ];
 const washingtonBackwalkFrames = washingtonBackwalkSprites.map((image) => ({
   image,
   crop: { x: 0, y: 30, w: 436, h: 630 },
-  height: 220,
+  height: 238,
   offsetX: 0
 }));
 const washingtonBackwalkCycle = [0, 1, 2, 3, 4, 3, 2, 1];
@@ -206,6 +214,7 @@ function makeFighter(data, x, dir, human) {
     special: 0,
     block: false,
     hurt: 0,
+    hitReact: 0,
     crouching: false,
     jumping: false,
     wins: 0
@@ -315,6 +324,7 @@ function stepFighter(f, foe) {
   if (f.attack === 0) f.attackType = "";
   f.special = Math.max(0, f.special - 1);
   f.hurt = Math.max(0, f.hurt - 1);
+  f.hitReact = Math.max(0, f.hitReact - 1);
   f.energy = clamp(f.energy + 0.16, 0, 100);
   if (f.hurt > 0) f.vx *= 0.88;
   f.x = clamp(f.x + f.vx, 56, W - 56);
@@ -402,6 +412,7 @@ function damage(f, amount, dir, label) {
   const actual = blocked ? Math.ceil(amount * 0.28) : amount;
   f.hp = clamp(f.hp - actual, 0, 100);
   f.hurt = blocked ? 10 : 22;
+  f.hitReact = blocked ? 0 : 14;
   f.vx = dir * (blocked ? 3 : 8);
   shake = blocked ? 4 : 9;
   hitSparks.push({ x: f.x, y: f.y - 92, life: 20, label, blocked });
@@ -585,6 +596,9 @@ function drawWashingtonSprite(f) {
 }
 
 function washingtonFrameFor(f) {
+  if (f.hitReact > 0 && washingtonHitSprite.complete && washingtonHitSprite.naturalWidth > 0) {
+    return washingtonFrames.hit;
+  }
   if (f.attack > 6 && f.attackType === "crouch-kick" && washingtonCrouchKickSprite.complete && washingtonCrouchKickSprite.naturalWidth > 0) {
     return washingtonFrames.crouchKick;
   }
