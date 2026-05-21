@@ -26,6 +26,7 @@ const walkFrameTicks = 8;
 const backwalkFrameTicks = 9;
 const knockdownFrameTicks = 8;
 const knockdownDuration = 40;
+const knockoutLaunchVelocity = -8.8;
 const keys = new Set();
 const stageImage = new Image();
 stageImage.src = "assets/presidential-stage-16bit.png";
@@ -308,6 +309,8 @@ function update() {
     defeated.hitReact = 0;
     defeated.knockdown = knockdownDuration;
     defeated.crouching = false;
+    defeated.jumping = true;
+    defeated.vy = Math.min(defeated.vy, knockoutLaunchVelocity);
     roundText = player.hp > rival.hp ? "PLAYER WINS" : "RIVAL WINS";
     roundTextTimer = 999;
   }
@@ -316,6 +319,10 @@ function update() {
     const defeated = player.hp <= 0 ? player : rival;
     if (defeated.knockdown <= 1) {
       defeated.knockdown = 1;
+      defeated.y = floorY;
+      defeated.vx = 0;
+      defeated.vy = 0;
+      defeated.jumping = false;
       running = false;
       if (!roundEndQueued) {
         roundEndQueued = true;
@@ -452,6 +459,11 @@ function damage(f, amount, dir, label) {
   f.hurt = blocked ? 10 : knocksDown ? knockdownDuration : 22;
   f.hitReact = blocked || knocksDown ? 0 : 14;
   f.knockdown = knocksDown ? knockdownDuration : 0;
+  if (knocksDown) {
+    f.jumping = true;
+    f.crouching = false;
+    f.vy = knockoutLaunchVelocity;
+  }
   f.vx = dir * (blocked ? 3 : 8);
   shake = blocked ? 4 : 9;
   hitSparks.push({ x: f.x, y: f.y - 92, life: 20, label, blocked });
@@ -581,6 +593,7 @@ function drawFighter(f) {
 }
 
 function fighterBob(f) {
+  if (f.knockdown > 0) return 0;
   if (f.jumping || Math.abs(f.vx) > 0.2) return 0;
   return Math.sin(tick / 38) * 0.8;
 }
