@@ -24,10 +24,13 @@ const jumpRiseGravity = 0.72;
 const jumpFallGravity = 1.05;
 const walkFrameTicks = 8;
 const backwalkFrameTicks = 9;
-const knockdownFrameTicks = 12;
-const knockdownDuration = 60;
-const knockoutLaunchVelocity = -10.8;
-const knockoutSlideSpeed = 12.5;
+const knockdownFrameTicks = 16;
+const knockdownDuration = 118;
+const knockoutImpactHold = 14;
+const knockoutLaunchVelocity = -14.5;
+const knockoutRiseGravity = 0.42;
+const knockoutFallGravity = 0.62;
+const knockoutSlideSpeed = 14;
 const keys = new Set();
 const stageImage = new Image();
 stageImage.src = "assets/presidential-stage-16bit.png";
@@ -233,6 +236,9 @@ function makeFighter(data, x, dir, human) {
     hurt: 0,
     hitReact: 0,
     knockdown: 0,
+    knockdownAge: 0,
+    knockdownLanded: 0,
+    knockdownDir: 0,
     crouching: false,
     jumping: false,
     wins: 0
@@ -307,12 +313,8 @@ function update() {
     const defeated = player.hp <= 0 ? player : rival;
     defeated.attack = 0;
     defeated.attackType = "";
-    defeated.hitReact = 0;
-    defeated.knockdown = knockdownDuration;
-    defeated.crouching = false;
-    defeated.jumping = true;
-    defeated.vy = Math.min(defeated.vy, knockoutLaunchVelocity);
-    roundText = player.hp > rival.hp ? "PLAYER WINS" : "RIVAL WINS";
+    startKnockdown(defeated, defeated === player ? rival.dir : player.dir);
+    roundText = "K.O.";
     roundTextTimer = 999;
   }
 
@@ -324,6 +326,8 @@ function update() {
       defeated.vx = 0;
       defeated.vy = 0;
       defeated.jumping = false;
+      roundText = player.hp > rival.hp ? "PLAYER WINS" : "RIVAL WINS";
+      roundTextTimer = 999;
       running = false;
       if (!roundEndQueued) {
         roundEndQueued = true;
@@ -368,18 +372,27 @@ function stepFighter(f, foe) {
   f.special = Math.max(0, f.special - 1);
   f.hurt = Math.max(0, f.hurt - 1);
   f.hitReact = Math.max(0, f.hitReact - 1);
-  f.knockdown = Math.max(0, f.knockdown - 1);
+  if (f.knockdown > 0) {
+    f.knockdown = Math.max(0, f.knockdown - 1);
+    f.knockdownAge += 1;
+  }
   f.energy = clamp(f.energy + 0.16, 0, 100);
-  if (f.knockdown > 0) f.crouching = false;
-  if (f.knockdown > 1) f.vx *= 0.97;
+  if (f.knockdown > 0) {
+    f.crouching = false;
+    if (f.knockdownAge <= knockoutImpactHold) return;
+  }
+  if (f.knockdown > 1) f.vx *= f.knockdownLanded ? 0.86 : 0.995;
   else if (f.hurt > 0) f.vx *= 0.88;
   f.x = clamp(f.x + f.vx, 56, W - 56);
-  f.vy += f.vy < 0 ? jumpRiseGravity : jumpFallGravity;
+  const riseGravity = f.knockdown > 0 ? knockoutRiseGravity : jumpRiseGravity;
+  const fallGravity = f.knockdown > 0 ? knockoutFallGravity : jumpFallGravity;
+  f.vy += f.vy < 0 ? riseGravity : fallGravity;
   f.y += f.vy;
   if (f.y >= floorY) {
     f.y = floorY;
     f.vy = 0;
     f.jumping = false;
+    if (f.knockdown > 0) f.knockdownLanded += 1;
   }
 }
 
@@ -453,6 +466,19 @@ function stepProjectiles() {
   projectiles = projectiles.filter((p) => p.life > 0 && p.x > -80 && p.x < W + 80);
 }
 
+function startKnockdown(f, dir) {
+  f.knockdown = knockdownDuration;
+  f.knockdownAge = 0;
+  f.knockdownLanded = 0;
+  f.knockdownDir = Math.sign(dir) || f.dir;
+  f.hitReact = 0;
+  f.hurt = knockdownDuration;
+  f.jumping = true;
+  f.crouching = false;
+  f.vx = f.knockdownDir * knockoutSlideSpeed;
+  f.vy = knockoutLaunchVelocity;
+}
+
 function damage(f, amount, dir, label) {
   const blocked = f.block && Math.sign(dir) !== f.dir;
   const actual = blocked ? Math.ceil(amount * 0.28) : amount;
@@ -460,13 +486,9 @@ function damage(f, amount, dir, label) {
   f.hp = clamp(f.hp - actual, 0, 100);
   f.hurt = blocked ? 10 : knocksDown ? knockdownDuration : 22;
   f.hitReact = blocked || knocksDown ? 0 : 14;
-  f.knockdown = knocksDown ? knockdownDuration : 0;
-  if (knocksDown) {
-    f.jumping = true;
-    f.crouching = false;
-    f.vy = knockoutLaunchVelocity;
-  }
-  f.vx = dir * (blocked ? 3 : knocksDown ? knockoutSlideSpeed : 8);
+  if (knocksDown) startKnockdown(f, dir);
+  else f.knockdown = 0;
+  if (!knocksDown) f.vx = dir * (blocked ? 3 : 8);
   shake = blocked ? 4 : 9;
   hitSparks.push({ x: f.x, y: f.y - 92, life: 20, label, blocked });
 }
@@ -696,8 +718,13 @@ function washingtonJumpFrameFor(f) {
 }
 
 function washingtonKnockdownFrameFor(f) {
-  const elapsed = knockdownDuration - f.knockdown;
-  const frameIndex = clamp(Math.floor(elapsed / knockdownFrameTicks), 0, washingtonKnockdownFrames.length - 1);
+  if (f.knockdownAge <= knockoutImpactHold && washingtonHitSprite.complete && washingtonHitSprite.naturalWidth > 0) {
+    return washingtonFrames.hit;
+  }
+  if (!f.knockdownLanded) {
+    return f.vy < 0 ? washingtonKnockdownFrames[0] : washingtonKnockdownFrames[1];
+  }
+  const frameIndex = clamp(2 + Math.floor((f.knockdownLanded - 1) / knockdownFrameTicks), 2, washingtonKnockdownFrames.length - 1);
   return washingtonKnockdownFrames[frameIndex];
 }
 
