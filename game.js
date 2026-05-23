@@ -30,7 +30,7 @@ const knockoutImpactHold = 14;
 const knockoutLaunchVelocity = -14.5;
 const knockoutRiseGravity = 0.42;
 const knockoutFallGravity = 0.62;
-const knockoutSlideSpeed = 14;
+const knockoutSlideSpeed = 9.8;
 const keys = new Set();
 const stageImage = new Image();
 stageImage.src = "assets/presidential-stage-16bit.png";
@@ -212,6 +212,7 @@ let roundText = "SELECT YOUR COMMANDER";
 let roundTextTimer = 999;
 let shake = 0;
 let tick = 0;
+let koSlowMoFrame = 0;
 let projectiles = [];
 let hitSparks = [];
 
@@ -818,8 +819,19 @@ function pixelText(text, x, y, scale, color, shadow) {
 }
 
 function loop() {
-  update();
+  if (koSlowMotionActive()) {
+    koSlowMoFrame = (koSlowMoFrame + 1) % 2;
+    if (koSlowMoFrame === 0) update();
+  } else {
+    koSlowMoFrame = 0;
+    update();
+  }
   draw();
+}
+
+function koSlowMotionActive() {
+  return gameOver
+    && ((player.hp <= 0 && player.knockdown > 1) || (rival.hp <= 0 && rival.knockdown > 1));
 }
 
 window.addEventListener("keydown", (event) => {
