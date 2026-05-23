@@ -134,11 +134,11 @@ const washingtonJumpFrames = washingtonJumpSprites.map((image) => ({
   offsetX: 0
 }));
 const washingtonKnockdownFrames = [
-  { image: washingtonKnockdownSprites[0], crop: { x: 37, y: 180, w: 357, h: 288 }, height: 190, offsetX: -4, lift: 44 },
-  { image: washingtonKnockdownSprites[1], crop: { x: 7, y: 238, w: 419, h: 278 }, height: 166, offsetX: 2, lift: 24 },
-  { image: washingtonKnockdownSprites[2], crop: { x: 59, y: 337, w: 375, h: 186 }, height: 124, offsetX: 6, lift: 6 },
-  { image: washingtonKnockdownSprites[3], crop: { x: 39, y: 367, w: 380, h: 164 }, height: 112, offsetX: 4, lift: 0 },
-  { image: washingtonKnockdownSprites[4], crop: { x: 32, y: 441, w: 400, h: 90 }, height: 64, offsetX: 0, lift: 0 }
+  { image: washingtonKnockdownSprites[0], crop: { x: 37, y: 180, w: 357, h: 288 }, height: 167, offsetX: -4, lift: 39 },
+  { image: washingtonKnockdownSprites[1], crop: { x: 7, y: 238, w: 419, h: 278 }, height: 146, offsetX: 2, lift: 21 },
+  { image: washingtonKnockdownSprites[2], crop: { x: 59, y: 337, w: 375, h: 186 }, height: 109, offsetX: 6, lift: 5 },
+  { image: washingtonKnockdownSprites[3], crop: { x: 39, y: 367, w: 380, h: 164 }, height: 99, offsetX: 4, lift: 0 },
+  { image: washingtonKnockdownSprites[4], crop: { x: 32, y: 441, w: 400, h: 90 }, height: 56, offsetX: 0, lift: 0 }
 ];
 
 const presidents = [
