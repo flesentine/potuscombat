@@ -30,7 +30,8 @@ const knockoutImpactHold = 14;
 const knockoutLaunchVelocity = -14.5;
 const knockoutRiseGravity = 0.42;
 const knockoutFallGravity = 0.62;
-const knockoutSlideSpeed = 9.8;
+const knockoutSlideSpeed = 6.4;
+const knockoutSlowMoInterval = 3;
 const keys = new Set();
 const stageImage = new Image();
 stageImage.src = "assets/presidential-stage-16bit.png";
@@ -820,7 +821,7 @@ function pixelText(text, x, y, scale, color, shadow) {
 
 function loop() {
   if (koSlowMotionActive()) {
-    koSlowMoFrame = (koSlowMoFrame + 1) % 2;
+    koSlowMoFrame = (koSlowMoFrame + 1) % knockoutSlowMoInterval;
     if (koSlowMoFrame === 0) update();
   } else {
     koSlowMoFrame = 0;
