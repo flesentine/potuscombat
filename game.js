@@ -27,10 +27,10 @@ const backwalkFrameTicks = 9;
 const knockdownFrameTicks = 16;
 const knockdownDuration = 118;
 const knockoutImpactHold = 14;
-const knockoutLaunchVelocity = -14.5;
-const knockoutRiseGravity = 0.42;
-const knockoutFallGravity = 0.62;
-const knockoutSlideSpeed = 6.4;
+const knockoutLaunchVelocity = -12.8;
+const knockoutRiseGravity = 0.48;
+const knockoutFallGravity = 0.68;
+const knockoutSlideSpeed = 5.1;
 const knockoutSlowMoInterval = 3;
 const keys = new Set();
 const stageImage = new Image();
@@ -503,12 +503,30 @@ function draw() {
   drawStage();
   drawHud();
   projectiles.forEach(drawProjectile);
-  drawFighter(player);
-  drawFighter(rival);
+  drawFighters();
   hitSparks.forEach(drawSpark);
   if (roundTextTimer > 0) drawRoundText();
   ctx.restore();
   requestAnimationFrame(loop);
+}
+
+function drawFighters() {
+  if (activeHitLayer(player, rival)) {
+    drawFighter(rival);
+    drawFighter(player);
+    return;
+  }
+  if (activeHitLayer(rival, player)) {
+    drawFighter(player);
+    drawFighter(rival);
+    return;
+  }
+  drawFighter(player);
+  drawFighter(rival);
+}
+
+function activeHitLayer(attacker, defender) {
+  return attacker.attack > 6 && defender.hurt > 0 && attacker.hurt === 0;
 }
 
 function drawStage() {
