@@ -45,6 +45,11 @@ const lincolnPunchSprite = new Image();
 lincolnPunchSprite.src = "assets/lincoln-punch-game.png";
 const lincolnKickSprite = new Image();
 lincolnKickSprite.src = "assets/lincoln-kick-game.png";
+const lincolnWalkSprites = [1, 2, 3, 4, 5].map((frame) => {
+  const image = new Image();
+  image.src = `assets/lincoln-walk-${frame}-game.png`;
+  return image;
+});
 const washingtonSprite = new Image();
 washingtonSprite.src = "assets/washington-idle.png";
 const washingtonPunchSprite = new Image();
@@ -186,6 +191,13 @@ const lincolnFrames = {
     offsetX: 18
   }
 };
+const lincolnWalkFrames = [
+  { image: lincolnWalkSprites[0], crop: { x: 0, y: 0, w: 154, h: 270 }, height: 270, offsetX: 0 },
+  { image: lincolnWalkSprites[1], crop: { x: 0, y: 0, w: 130, h: 270 }, height: 270, offsetX: 0 },
+  { image: lincolnWalkSprites[2], crop: { x: 0, y: 0, w: 155, h: 270 }, height: 270, offsetX: 0 },
+  { image: lincolnWalkSprites[3], crop: { x: 0, y: 0, w: 120, h: 270 }, height: 270, offsetX: 0 },
+  { image: lincolnWalkSprites[4], crop: { x: 0, y: 0, w: 163, h: 270 }, height: 270, offsetX: 0 }
+];
 
 const presidents = [
   {
@@ -784,6 +796,9 @@ function lincolnFrameFor(f) {
   }
   if (f.attack > 6 && f.attackType === "punch" && lincolnPunchSprite.complete && lincolnPunchSprite.naturalWidth > 0) {
     return lincolnFrames.punch;
+  }
+  if (!f.jumping && Math.sign(f.vx) === f.dir && Math.abs(f.vx) > 0.2 && lincolnWalkSprites.every((image) => image.complete && image.naturalWidth > 0)) {
+    return lincolnWalkFrames[Math.floor(tick / walkFrameTicks) % lincolnWalkFrames.length];
   }
   return lincolnFrames.idle;
 }
