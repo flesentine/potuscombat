@@ -162,8 +162,8 @@ const washingtonKnockdownFrames = [
 ];
 const lincolnFrame = {
   image: lincolnSprite,
-  crop: { x: 24, y: 24, w: 277, h: 660 },
-  height: 238,
+  crop: { x: 374, y: 53, w: 438, h: 1116 },
+  height: 270,
   offsetX: 0
 };
 
