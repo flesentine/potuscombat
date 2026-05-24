@@ -468,12 +468,10 @@ function strike(attacker, defender, type) {
 }
 
 function strikeImpactPoint(attacker, defender, type, crouchStrike) {
-  const xReach = crouchStrike ? (type === "punch" ? 88 : 118) : (type === "punch" ? 74 : 94);
-  const yOffset = crouchStrike ? (type === "punch" ? 94 : 52) : (type === "punch" ? 148 : 76);
-  const fistX = attacker.x + attacker.dir * xReach;
-  const defenderEdgeX = defender.x - attacker.dir * (defender.w / 2 - 6);
+  const yOffset = crouchStrike ? (type === "punch" ? 94 : 50) : (type === "punch" ? 150 : 106);
+  const defenderEdgeX = defender.x - attacker.dir * (defender.w / 2 - 4);
   return {
-    x: Math.round(fistX * 0.55 + defenderEdgeX * 0.45),
+    x: Math.round(defenderEdgeX),
     y: attacker.y - yOffset
   };
 }
