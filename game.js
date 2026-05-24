@@ -35,6 +35,8 @@ const knockoutSlowMoInterval = 3;
 const keys = new Set();
 const stageImage = new Image();
 stageImage.src = "assets/presidential-stage-16bit.png";
+const impactSparkSprite = new Image();
+impactSparkSprite.src = "assets/impact-spark.png";
 const washingtonSprite = new Image();
 washingtonSprite.src = "assets/washington-idle.png";
 const washingtonPunchSprite = new Image();
@@ -789,10 +791,32 @@ function drawProjectile(p) {
 }
 
 function drawSpark(s) {
-  ctx.fillStyle = s.blocked ? "#9ee4ff" : "#fff4c7";
-  ctx.fillRect(s.x - 30, s.y - 7, 60, 14);
-  ctx.fillRect(s.x - 7, s.y - 30, 14, 60);
-  pixelText(s.blocked ? "BLOCK" : "HIT", s.x - 34, s.y - 48, 2, s.blocked ? "#9ee4ff" : "#ffffff");
+  const lifeProgress = s.life / 20;
+  const pulse = 1 + (1 - lifeProgress) * 0.28;
+  const displayW = Math.round((s.blocked ? 62 : 76) * pulse);
+  const displayH = Math.round(displayW * 0.54);
+  const alpha = clamp(lifeProgress * 1.35, 0, 1);
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  if (impactSparkSprite.complete && impactSparkSprite.naturalWidth > 0) {
+    ctx.drawImage(
+      impactSparkSprite,
+      139,
+      349,
+      995,
+      536,
+      Math.round(s.x - displayW / 2),
+      Math.round(s.y - displayH / 2),
+      displayW,
+      displayH
+    );
+  } else {
+    ctx.fillStyle = s.blocked ? "#9ee4ff" : "#fff4c7";
+    ctx.fillRect(s.x - 30, s.y - 7, 60, 14);
+    ctx.fillRect(s.x - 7, s.y - 30, 14, 60);
+  }
+  ctx.restore();
 }
 
 function drawRoundText() {
