@@ -43,6 +43,8 @@ const washingtonKickSprite = new Image();
 washingtonKickSprite.src = "assets/washington-kick.png";
 const washingtonCrouchSprite = new Image();
 washingtonCrouchSprite.src = "assets/washington-crouch.png";
+const washingtonCrouchBlockSprite = new Image();
+washingtonCrouchBlockSprite.src = "assets/washington-crouch-block.png";
 const washingtonCrouchPunchSprite = new Image();
 washingtonCrouchPunchSprite.src = "assets/washington-crouch-punch.png";
 const washingtonCrouchKickSprite = new Image();
@@ -93,6 +95,12 @@ const washingtonFrames = {
   crouch: {
     image: washingtonCrouchSprite,
     crop: { x: 221, y: 224, w: 756, h: 765 },
+    height: 156,
+    offsetX: 0
+  },
+  crouchBlock: {
+    image: washingtonCrouchBlockSprite,
+    crop: { x: 194, y: 193, w: 797, h: 793 },
     height: 156,
     offsetX: 0
   },
@@ -671,7 +679,7 @@ function drawWashingtonSprite(f) {
   ctx.translate(Math.round(f.x), Math.round(f.y + bob));
   ctx.scale(f.dir, 1);
 
-  if (f.block && frame !== washingtonFrames.block) {
+  if (f.block && frame !== washingtonFrames.block && frame !== washingtonFrames.crouchBlock) {
     ctx.fillStyle = "rgba(158, 228, 255, 0.28)";
     ctx.fillRect(-58, -142, 28, 112);
   }
@@ -721,6 +729,9 @@ function washingtonFrameFor(f) {
   }
   if (f.jumping && washingtonJumpSprites.every((image) => image.complete && image.naturalWidth > 0)) {
     return washingtonJumpFrameFor(f);
+  }
+  if (f.crouching && f.block && washingtonCrouchBlockSprite.complete && washingtonCrouchBlockSprite.naturalWidth > 0) {
+    return washingtonFrames.crouchBlock;
   }
   if (f.block && washingtonBlockSprite.complete && washingtonBlockSprite.naturalWidth > 0) {
     return washingtonFrames.block;
