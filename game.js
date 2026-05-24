@@ -37,6 +37,8 @@ const stageImage = new Image();
 stageImage.src = "assets/presidential-stage-16bit.png";
 const impactSparkSprite = new Image();
 impactSparkSprite.src = "assets/impact-spark.png";
+const lincolnSprite = new Image();
+lincolnSprite.src = "assets/lincoln-idle.png";
 const washingtonSprite = new Image();
 washingtonSprite.src = "assets/washington-idle.png";
 const washingtonPunchSprite = new Image();
@@ -158,6 +160,12 @@ const washingtonKnockdownFrames = [
   { image: washingtonKnockdownSprites[3], crop: { x: 39, y: 367, w: 380, h: 164 }, height: 99, offsetX: 4, lift: 0 },
   { image: washingtonKnockdownSprites[4], crop: { x: 32, y: 441, w: 400, h: 90 }, height: 56, offsetX: 0, lift: 0 }
 ];
+const lincolnFrame = {
+  image: lincolnSprite,
+  crop: { x: 24, y: 24, w: 277, h: 660 },
+  height: 238,
+  offsetX: 0
+};
 
 const presidents = [
   {
@@ -622,6 +630,10 @@ function drawFighter(f) {
     drawWashingtonSprite(f);
     return;
   }
+  if (f.data.name === "Lincoln" && lincolnSprite.complete && lincolnSprite.naturalWidth > 0) {
+    drawLincolnSprite(f);
+    return;
+  }
 
   const [coat, pants, skin] = f.data.colors;
   const r = rect(f);
@@ -679,6 +691,47 @@ function drawFighter(f) {
     ctx.fillRect(-46, -188, 10, 10);
     ctx.fillRect(38, -196, 14, 14);
     ctx.fillRect(-8, -210, 12, 12);
+  }
+
+  ctx.restore();
+}
+
+function drawLincolnSprite(f) {
+  const frame = lincolnFrame;
+  const bob = fighterBob(f);
+  const hurtFlash = f.hurt > 0 && tick % 4 < 2;
+  const displayH = frame.height;
+  const displayW = Math.round(displayH * (frame.crop.w / frame.crop.h));
+
+  drawShadow(f, 76);
+  ctx.save();
+  ctx.translate(Math.round(f.x), Math.round(f.y + bob));
+  ctx.scale(f.dir, 1);
+
+  if (f.block) {
+    ctx.fillStyle = "rgba(158, 228, 255, 0.28)";
+    ctx.fillRect(-54, -142, 26, 112);
+  }
+
+  ctx.globalAlpha = hurtFlash ? 0.55 : 1;
+  ctx.drawImage(
+    frame.image,
+    frame.crop.x,
+    frame.crop.y,
+    frame.crop.w,
+    frame.crop.h,
+    -Math.round(displayW / 2) + frame.offsetX,
+    -displayH,
+    displayW,
+    displayH
+  );
+  ctx.globalAlpha = 1;
+
+  if (f.special > 0) {
+    ctx.fillStyle = f.data.accent;
+    ctx.fillRect(-42, -188, 10, 10);
+    ctx.fillRect(34, -196, 14, 14);
+    ctx.fillRect(-6, -210, 12, 12);
   }
 
   ctx.restore();
