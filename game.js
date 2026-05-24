@@ -32,7 +32,7 @@ const knockoutRiseGravity = 0.48;
 const knockoutFallGravity = 0.68;
 const knockoutSlideSpeed = 5.1;
 const knockoutSlowMoInterval = 3;
-const stepMs = 1000 / 60;
+const stepMs = 1000 / 120;
 const maxFrameCatchupMs = 90;
 const keys = new Set();
 const stageImage = new Image();
@@ -40,11 +40,11 @@ stageImage.src = "assets/presidential-stage-16bit.png";
 const impactSparkSprite = new Image();
 impactSparkSprite.src = "assets/impact-spark.png";
 const lincolnSprite = new Image();
-lincolnSprite.src = "assets/lincoln-idle.png";
+lincolnSprite.src = "assets/lincoln-idle-game.png";
 const lincolnPunchSprite = new Image();
-lincolnPunchSprite.src = "assets/lincoln-punch.png";
+lincolnPunchSprite.src = "assets/lincoln-punch-game.png";
 const lincolnKickSprite = new Image();
-lincolnKickSprite.src = "assets/lincoln-kick.png";
+lincolnKickSprite.src = "assets/lincoln-kick-game.png";
 const washingtonSprite = new Image();
 washingtonSprite.src = "assets/washington-idle.png";
 const washingtonPunchSprite = new Image();
@@ -169,19 +169,19 @@ const washingtonKnockdownFrames = [
 const lincolnFrames = {
   idle: {
     image: lincolnSprite,
-    crop: { x: 374, y: 53, w: 438, h: 1116 },
+    crop: { x: 0, y: 0, w: 106, h: 270 },
     height: 270,
     offsetX: 0
   },
   punch: {
     image: lincolnPunchSprite,
-    crop: { x: 146, y: 67, w: 923, h: 1088 },
+    crop: { x: 0, y: 0, w: 229, h: 270 },
     height: 270,
     offsetX: 10
   },
   kick: {
     image: lincolnKickSprite,
-    crop: { x: 65, y: 85, w: 1029, h: 1086 },
+    crop: { x: 0, y: 0, w: 256, h: 270 },
     height: 270,
     offsetX: 18
   }
