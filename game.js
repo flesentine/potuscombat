@@ -39,6 +39,10 @@ const impactSparkSprite = new Image();
 impactSparkSprite.src = "assets/impact-spark.png";
 const lincolnSprite = new Image();
 lincolnSprite.src = "assets/lincoln-idle.png";
+const lincolnPunchSprite = new Image();
+lincolnPunchSprite.src = "assets/lincoln-punch.png";
+const lincolnKickSprite = new Image();
+lincolnKickSprite.src = "assets/lincoln-kick.png";
 const washingtonSprite = new Image();
 washingtonSprite.src = "assets/washington-idle.png";
 const washingtonPunchSprite = new Image();
@@ -160,11 +164,25 @@ const washingtonKnockdownFrames = [
   { image: washingtonKnockdownSprites[3], crop: { x: 39, y: 367, w: 380, h: 164 }, height: 99, offsetX: 4, lift: 0 },
   { image: washingtonKnockdownSprites[4], crop: { x: 32, y: 441, w: 400, h: 90 }, height: 56, offsetX: 0, lift: 0 }
 ];
-const lincolnFrame = {
-  image: lincolnSprite,
-  crop: { x: 374, y: 53, w: 438, h: 1116 },
-  height: 270,
-  offsetX: 0
+const lincolnFrames = {
+  idle: {
+    image: lincolnSprite,
+    crop: { x: 374, y: 53, w: 438, h: 1116 },
+    height: 270,
+    offsetX: 0
+  },
+  punch: {
+    image: lincolnPunchSprite,
+    crop: { x: 146, y: 67, w: 923, h: 1088 },
+    height: 270,
+    offsetX: 10
+  },
+  kick: {
+    image: lincolnKickSprite,
+    crop: { x: 65, y: 85, w: 1029, h: 1086 },
+    height: 270,
+    offsetX: 18
+  }
 };
 
 const presidents = [
@@ -697,7 +715,7 @@ function drawFighter(f) {
 }
 
 function drawLincolnSprite(f) {
-  const frame = lincolnFrame;
+  const frame = lincolnFrameFor(f);
   const bob = fighterBob(f);
   const hurtFlash = f.hurt > 0 && tick % 4 < 2;
   const displayH = frame.height;
@@ -735,6 +753,16 @@ function drawLincolnSprite(f) {
   }
 
   ctx.restore();
+}
+
+function lincolnFrameFor(f) {
+  if (f.attack > 6 && f.attackType === "kick" && lincolnKickSprite.complete && lincolnKickSprite.naturalWidth > 0) {
+    return lincolnFrames.kick;
+  }
+  if (f.attack > 6 && f.attackType === "punch" && lincolnPunchSprite.complete && lincolnPunchSprite.naturalWidth > 0) {
+    return lincolnFrames.punch;
+  }
+  return lincolnFrames.idle;
 }
 
 function fighterBob(f) {
