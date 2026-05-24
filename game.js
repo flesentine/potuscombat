@@ -431,8 +431,17 @@ function strike(attacker, defender, type) {
     h: type === "punch" ? 42 : 34
   };
   if (intersects(box, rect(defender))) {
-    damage(defender, type === "punch" ? 6 : 9, attacker.dir, type.toUpperCase());
+    damage(defender, type === "punch" ? 6 : 9, attacker.dir, type.toUpperCase(), strikeImpactPoint(attacker, type, crouchStrike));
   }
+}
+
+function strikeImpactPoint(attacker, type, crouchStrike) {
+  const xReach = crouchStrike ? (type === "punch" ? 88 : 118) : (type === "punch" ? 74 : 94);
+  const yOffset = crouchStrike ? (type === "punch" ? 84 : 52) : (type === "punch" ? 118 : 76);
+  return {
+    x: attacker.x + attacker.dir * xReach,
+    y: attacker.y - yOffset
+  };
 }
 
 function special(attacker, defender) {
@@ -447,16 +456,31 @@ function special(attacker, defender) {
   if (kind === "dash" || kind === "rush") {
     attacker.vx = attacker.dir * (kind === "dash" ? 15 : 11);
     setTimeout(() => {
-      if (Math.abs(attacker.x - defender.x) < 118) damage(defender, kind === "dash" ? 16 : 13, attacker.dir, attacker.data.move);
+      if (Math.abs(attacker.x - defender.x) < 118) {
+        damage(defender, kind === "dash" ? 16 : 13, attacker.dir, attacker.data.move, {
+          x: attacker.x + attacker.dir * 76,
+          y: attacker.y - 96
+        });
+      }
     }, 120);
   } else if (kind === "uppercut") {
     attacker.vy = jumpVelocity * 1.15;
     attacker.jumping = true;
-    if (Math.abs(attacker.x - defender.x) < 105) damage(defender, 18, attacker.dir, attacker.data.move);
+    if (Math.abs(attacker.x - defender.x) < 105) {
+      damage(defender, 18, attacker.dir, attacker.data.move, {
+        x: attacker.x + attacker.dir * 54,
+        y: attacker.y - 126
+      });
+    }
   } else if (kind === "cyclone") {
     for (let i = 0; i < 3; i += 1) {
       setTimeout(() => {
-        if (Math.abs(attacker.x - defender.x) < 132) damage(defender, 6, attacker.dir, attacker.data.move);
+        if (Math.abs(attacker.x - defender.x) < 132) {
+          damage(defender, 6, attacker.dir, attacker.data.move, {
+            x: attacker.x + attacker.dir * 82,
+            y: attacker.y - (82 + i * 12)
+          });
+        }
       }, i * 120);
     }
   } else {
@@ -479,7 +503,7 @@ function stepProjectiles() {
     p.life -= 1;
     const target = p.owner === player ? rival : player;
     if (intersects({ x: p.x - 18, y: p.y - 14, w: 36, h: 28 }, rect(target))) {
-      damage(target, p.damage, Math.sign(p.vx), p.label);
+      damage(target, p.damage, Math.sign(p.vx), p.label, { x: p.x, y: p.y });
       p.life = 0;
     }
   });
@@ -499,7 +523,7 @@ function startKnockdown(f, dir) {
   f.vy = knockoutLaunchVelocity;
 }
 
-function damage(f, amount, dir, label) {
+function damage(f, amount, dir, label, impact = null) {
   const blocked = f.block && Math.sign(dir) !== f.dir;
   const actual = blocked ? Math.ceil(amount * 0.28) : amount;
   const knocksDown = f.hp - actual <= 0;
@@ -510,7 +534,13 @@ function damage(f, amount, dir, label) {
   else f.knockdown = 0;
   if (!knocksDown) f.vx = dir * (blocked ? 3 : 8);
   shake = blocked ? 4 : 9;
-  hitSparks.push({ x: f.x, y: f.y - 92, life: 20, label, blocked });
+  hitSparks.push({
+    x: impact?.x ?? f.x - Math.sign(dir) * 32,
+    y: impact?.y ?? f.y - 92,
+    life: 20,
+    label,
+    blocked
+  });
 }
 
 function draw() {
