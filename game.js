@@ -32,6 +32,8 @@ const knockoutRiseGravity = 0.48;
 const knockoutFallGravity = 0.68;
 const knockoutSlideSpeed = 5.1;
 const knockoutSlowMoInterval = 3;
+const stepMs = 1000 / 60;
+const maxFrameCatchupMs = 90;
 const keys = new Set();
 const stageImage = new Image();
 stageImage.src = "assets/presidential-stage-16bit.png";
@@ -258,6 +260,8 @@ let roundTextTimer = 999;
 let shake = 0;
 let tick = 0;
 let koSlowMoFrame = 0;
+let lastFrameTime = 0;
+let frameLag = 0;
 let projectiles = [];
 let hitSparks = [];
 
@@ -314,6 +318,8 @@ function resetMatch() {
   running = true;
   gameOver = false;
   roundEndQueued = false;
+  lastFrameTime = 0;
+  frameLag = 0;
   overlay.classList.add("hidden");
   updateMoveCards();
 }
@@ -457,15 +463,17 @@ function strike(attacker, defender, type) {
     h: type === "punch" ? 42 : 34
   };
   if (intersects(box, rect(defender))) {
-    damage(defender, type === "punch" ? 6 : 9, attacker.dir, type.toUpperCase(), strikeImpactPoint(attacker, type, crouchStrike));
+    damage(defender, type === "punch" ? 6 : 9, attacker.dir, type.toUpperCase(), strikeImpactPoint(attacker, defender, type, crouchStrike));
   }
 }
 
-function strikeImpactPoint(attacker, type, crouchStrike) {
+function strikeImpactPoint(attacker, defender, type, crouchStrike) {
   const xReach = crouchStrike ? (type === "punch" ? 88 : 118) : (type === "punch" ? 74 : 94);
-  const yOffset = crouchStrike ? (type === "punch" ? 84 : 52) : (type === "punch" ? 118 : 76);
+  const yOffset = crouchStrike ? (type === "punch" ? 94 : 52) : (type === "punch" ? 148 : 76);
+  const fistX = attacker.x + attacker.dir * xReach;
+  const defenderEdgeX = defender.x - attacker.dir * (defender.w / 2 - 6);
   return {
-    x: attacker.x + attacker.dir * xReach,
+    x: Math.round(fistX * 0.55 + defenderEdgeX * 0.45),
     y: attacker.y - yOffset
   };
 }
@@ -733,15 +741,9 @@ function drawLincolnSprite(f) {
 
   ctx.globalAlpha = hurtFlash ? 0.55 : 1;
   ctx.drawImage(
-    frame.image,
-    frame.crop.x,
-    frame.crop.y,
-    frame.crop.w,
-    frame.crop.h,
+    preparedFrameCanvas(frame, displayW, displayH),
     -Math.round(displayW / 2) + frame.offsetX,
-    -displayH,
-    displayW,
-    displayH
+    -displayH
   );
   ctx.globalAlpha = 1;
 
@@ -753,6 +755,29 @@ function drawLincolnSprite(f) {
   }
 
   ctx.restore();
+}
+
+function preparedFrameCanvas(frame, displayW, displayH) {
+  if (!frame.buffer || frame.buffer.width !== displayW || frame.buffer.height !== displayH) {
+    const buffer = document.createElement("canvas");
+    buffer.width = displayW;
+    buffer.height = displayH;
+    const bufferCtx = buffer.getContext("2d");
+    bufferCtx.imageSmoothingEnabled = false;
+    bufferCtx.drawImage(
+      frame.image,
+      frame.crop.x,
+      frame.crop.y,
+      frame.crop.w,
+      frame.crop.h,
+      0,
+      0,
+      displayW,
+      displayH
+    );
+    frame.buffer = buffer;
+  }
+  return frame.buffer;
 }
 
 function lincolnFrameFor(f) {
@@ -799,15 +824,9 @@ function drawWashingtonSprite(f) {
 
   ctx.globalAlpha = hurtFlash ? 0.55 : 1;
   ctx.drawImage(
-    frame.image,
-    frame.crop.x,
-    frame.crop.y,
-    frame.crop.w,
-    frame.crop.h,
+    preparedFrameCanvas(frame, displayW, displayH),
     -Math.round(displayW / 2) + frame.offsetX,
-    -displayH - lift,
-    displayW,
-    displayH
+    -displayH - lift
   );
   ctx.globalAlpha = 1;
 
@@ -994,14 +1013,22 @@ function pixelText(text, x, y, scale, color, shadow) {
   });
 }
 
-function loop() {
-  if (koSlowMotionActive()) {
-    koSlowMoFrame = (koSlowMoFrame + 1) % knockoutSlowMoInterval;
-    if (koSlowMoFrame === 0) update();
-  } else {
-    koSlowMoFrame = 0;
-    update();
+function loop(now = 0) {
+  if (!lastFrameTime) lastFrameTime = now;
+  frameLag += Math.min(now - lastFrameTime, maxFrameCatchupMs);
+  lastFrameTime = now;
+
+  while (frameLag >= stepMs) {
+    if (koSlowMotionActive()) {
+      koSlowMoFrame = (koSlowMoFrame + 1) % knockoutSlowMoInterval;
+      if (koSlowMoFrame === 0) update();
+    } else {
+      koSlowMoFrame = 0;
+      update();
+    }
+    frameLag -= stepMs;
   }
+
   draw();
 }
 
