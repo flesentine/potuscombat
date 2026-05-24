@@ -194,10 +194,11 @@ const lincolnFrames = {
 const lincolnWalkFrames = [
   { image: lincolnWalkSprites[0], crop: { x: 0, y: 0, w: 154, h: 270 }, height: 270, offsetX: 0 },
   { image: lincolnWalkSprites[1], crop: { x: 0, y: 0, w: 130, h: 270 }, height: 270, offsetX: 0 },
-  { image: lincolnWalkSprites[2], crop: { x: 0, y: 0, w: 155, h: 270 }, height: 270, offsetX: 0 },
-  { image: lincolnWalkSprites[3], crop: { x: 0, y: 0, w: 120, h: 270 }, height: 270, offsetX: 0 },
-  { image: lincolnWalkSprites[4], crop: { x: 0, y: 0, w: 163, h: 270 }, height: 270, offsetX: 0 }
+  { image: lincolnWalkSprites[2], crop: { x: 0, y: 0, w: 182, h: 270 }, height: 270, offsetX: 0 },
+  { image: lincolnWalkSprites[3], crop: { x: 0, y: 0, w: 153, h: 270 }, height: 270, offsetX: 0 },
+  { image: lincolnWalkSprites[4], crop: { x: 0, y: 0, w: 166, h: 270 }, height: 270, offsetX: 0 }
 ];
+const lincolnWalkCycle = [0, 1, 2, 4, 3, 2];
 
 const presidents = [
   {
@@ -798,7 +799,7 @@ function lincolnFrameFor(f) {
     return lincolnFrames.punch;
   }
   if (!f.jumping && Math.sign(f.vx) === f.dir && Math.abs(f.vx) > 0.2 && lincolnWalkSprites.every((image) => image.complete && image.naturalWidth > 0)) {
-    return lincolnWalkFrames[Math.floor(tick / walkFrameTicks) % lincolnWalkFrames.length];
+    return lincolnWalkFrames[lincolnWalkCycle[Math.floor(tick / walkFrameTicks) % lincolnWalkCycle.length]];
   }
   return lincolnFrames.idle;
 }
