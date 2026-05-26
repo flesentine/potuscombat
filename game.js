@@ -206,10 +206,10 @@ const lincolnWalkFrames = [
 const lincolnWalkCycle = [0, 1, 2, 3, 4];
 const lincolnJumpFrames = [
   { image: lincolnJumpSprites[0], crop: { x: 0, y: 0, w: 127, h: 200 }, height: 200, offsetX: 1 },
-  { image: lincolnJumpSprites[1], crop: { x: 0, y: 0, w: 127, h: 270 }, height: 270, offsetX: 0 },
-  { image: lincolnJumpSprites[2], crop: { x: 0, y: 0, w: 133, h: 225 }, height: 225, offsetX: 2 },
-  { image: lincolnJumpSprites[3], crop: { x: 0, y: 0, w: 123, h: 196 }, height: 196, offsetX: 0 },
-  { image: lincolnJumpSprites[4], crop: { x: 0, y: 0, w: 130, h: 270 }, height: 270, offsetX: 0 },
+  { image: lincolnJumpSprites[1], crop: { x: 0, y: 0, w: 127, h: 270 }, height: 270, offsetX: 3 },
+  { image: lincolnJumpSprites[2], crop: { x: 0, y: 0, w: 133, h: 225 }, height: 225, offsetX: -6, lift: 35 },
+  { image: lincolnJumpSprites[3], crop: { x: 0, y: 0, w: 123, h: 196 }, height: 196, offsetX: 0, lift: 56 },
+  { image: lincolnJumpSprites[4], crop: { x: 0, y: 0, w: 130, h: 270 }, height: 270, offsetX: -2 },
   { image: lincolnJumpSprites[5], crop: { x: 0, y: 0, w: 128, h: 196 }, height: 196, offsetX: 1 }
 ];
 
@@ -830,7 +830,7 @@ function lincolnJumpFrameFor(f) {
   if (f.vy < 2.8) return lincolnJumpFrames[3];
   if (f.vy < 9) return lincolnJumpFrames[4];
   if (air < 44) return lincolnJumpFrames[5];
-  return lincolnJumpFrames[5];
+  return lincolnJumpFrames[4];
 }
 
 function fighterBob(f) {
