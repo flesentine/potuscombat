@@ -45,6 +45,12 @@ const lincolnPunchSprite = new Image();
 lincolnPunchSprite.src = "assets/lincoln-punch-game.png";
 const lincolnKickSprite = new Image();
 lincolnKickSprite.src = "assets/lincoln-kick-game.png";
+const lincolnCrouchSprite = new Image();
+lincolnCrouchSprite.src = "assets/lincoln-crouch-game.png";
+const lincolnCrouchPunchSprite = new Image();
+lincolnCrouchPunchSprite.src = "assets/lincoln-crouch-punch-game.png";
+const lincolnCrouchKickSprite = new Image();
+lincolnCrouchKickSprite.src = "assets/lincoln-crouch-kick-game.png";
 const lincolnWalkSprites = [1, 2, 3, 4, 5].map((frame) => {
   const image = new Image();
   image.src = `assets/lincoln-walk-${frame}-game.png`;
@@ -194,6 +200,24 @@ const lincolnFrames = {
     crop: { x: 0, y: 0, w: 256, h: 270 },
     height: 270,
     offsetX: 18
+  },
+  crouch: {
+    image: lincolnCrouchSprite,
+    crop: { x: 0, y: 0, w: 140, h: 176 },
+    height: 176,
+    offsetX: 0
+  },
+  crouchPunch: {
+    image: lincolnCrouchPunchSprite,
+    crop: { x: 0, y: 0, w: 206, h: 173 },
+    height: 173,
+    offsetX: 14
+  },
+  crouchKick: {
+    image: lincolnCrouchKickSprite,
+    crop: { x: 0, y: 0, w: 233, h: 164 },
+    height: 164,
+    offsetX: 55
   }
 };
 const lincolnWalkFrames = [
@@ -806,6 +830,12 @@ function preparedFrameCanvas(frame, displayW, displayH) {
 }
 
 function lincolnFrameFor(f) {
+  if (f.attack > 6 && f.attackType === "crouch-kick" && lincolnCrouchKickSprite.complete && lincolnCrouchKickSprite.naturalWidth > 0) {
+    return lincolnFrames.crouchKick;
+  }
+  if (f.attack > 6 && f.attackType === "crouch-punch" && lincolnCrouchPunchSprite.complete && lincolnCrouchPunchSprite.naturalWidth > 0) {
+    return lincolnFrames.crouchPunch;
+  }
   if (f.attack > 6 && f.attackType === "kick" && lincolnKickSprite.complete && lincolnKickSprite.naturalWidth > 0) {
     return lincolnFrames.kick;
   }
@@ -817,6 +847,9 @@ function lincolnFrameFor(f) {
   }
   if (!f.jumping && Math.sign(f.vx) === f.dir && Math.abs(f.vx) > 0.2 && lincolnWalkSprites.every((image) => image.complete && image.naturalWidth > 0)) {
     return lincolnWalkFrames[lincolnWalkCycle[Math.floor(tick / walkFrameTicks) % lincolnWalkCycle.length]];
+  }
+  if (f.crouching && lincolnCrouchSprite.complete && lincolnCrouchSprite.naturalWidth > 0) {
+    return lincolnFrames.crouch;
   }
   return lincolnFrames.idle;
 }
