@@ -55,6 +55,13 @@ const lincolnBlockSprite = new Image();
 lincolnBlockSprite.src = "assets/lincoln-block-game.png";
 const lincolnCrouchBlockSprite = new Image();
 lincolnCrouchBlockSprite.src = "assets/lincoln-crouch-block-game.png";
+const lincolnHatSprite = new Image();
+lincolnHatSprite.src = "assets/lincoln-hat-game.png";
+const lincolnKnockdownSprites = [1, 2, 3, 4, 5].map((frame) => {
+  const image = new Image();
+  image.src = `assets/lincoln-knockdown-${frame}-game.png`;
+  return image;
+});
 const lincolnWalkSprites = [1, 2, 3, 4, 5].map((frame) => {
   const image = new Image();
   image.src = `assets/lincoln-walk-${frame}-game.png`;
@@ -251,6 +258,13 @@ const lincolnJumpFrames = [
   { image: lincolnJumpSprites[3], crop: { x: 0, y: 0, w: 123, h: 196 }, height: 196, offsetX: 0, lift: 56 },
   { image: lincolnJumpSprites[4], crop: { x: 0, y: 0, w: 130, h: 270 }, height: 270, offsetX: -2 },
   { image: lincolnJumpSprites[5], crop: { x: 0, y: 0, w: 128, h: 196 }, height: 196, offsetX: 1 }
+];
+const lincolnKnockdownFrames = [
+  { image: lincolnKnockdownSprites[0], crop: { x: 0, y: 0, w: 239, h: 190 }, height: 190, offsetX: -4, shadowWidth: 92 },
+  { image: lincolnKnockdownSprites[1], crop: { x: 0, y: 0, w: 248, h: 166 }, height: 166, offsetX: 0, shadowWidth: 104 },
+  { image: lincolnKnockdownSprites[2], crop: { x: 0, y: 0, w: 243, h: 124 }, height: 124, offsetX: 4, shadowWidth: 118 },
+  { image: lincolnKnockdownSprites[3], crop: { x: 0, y: 0, w: 316, h: 112 }, height: 112, offsetX: 6, shadowWidth: 140 },
+  { image: lincolnKnockdownSprites[4], crop: { x: 0, y: 0, w: 338, h: 64 }, height: 64, offsetX: 8, shadowWidth: 154 }
 ];
 
 const presidents = [
@@ -794,7 +808,7 @@ function drawLincolnSprite(f) {
   const displayW = Math.round(displayH * (frame.crop.w / frame.crop.h));
   const lift = frame.lift || 0;
 
-  drawShadow(f, 76);
+  drawShadow(f, frame.shadowWidth || 76);
   ctx.save();
   ctx.translate(Math.round(f.x), Math.round(f.y + bob));
   ctx.scale(f.dir, 1);
@@ -820,6 +834,10 @@ function drawLincolnSprite(f) {
   }
 
   ctx.restore();
+
+  if (f.knockdown > 0 && lincolnHatSprite.complete && lincolnHatSprite.naturalWidth > 0) {
+    drawLincolnHat(f);
+  }
 }
 
 function preparedFrameCanvas(frame, displayW, displayH) {
@@ -846,6 +864,9 @@ function preparedFrameCanvas(frame, displayW, displayH) {
 }
 
 function lincolnFrameFor(f) {
+  if (f.knockdown > 0 && lincolnKnockdownSprites.every((image) => image.complete && image.naturalWidth > 0)) {
+    return lincolnKnockdownFrameFor(f);
+  }
   if (f.attack > 6 && f.attackType === "crouch-kick" && lincolnCrouchKickSprite.complete && lincolnCrouchKickSprite.naturalWidth > 0) {
     return lincolnFrames.crouchKick;
   }
@@ -874,6 +895,32 @@ function lincolnFrameFor(f) {
     return lincolnFrames.crouch;
   }
   return lincolnFrames.idle;
+}
+
+function lincolnKnockdownFrameFor(f) {
+  if (f.knockdownAge <= knockoutImpactHold) return lincolnKnockdownFrames[0];
+  if (!f.knockdownLanded) {
+    return f.vy < 0 ? lincolnKnockdownFrames[0] : lincolnKnockdownFrames[1];
+  }
+  const frameIndex = clamp(2 + Math.floor((f.knockdownLanded - 1) / knockdownFrameTicks), 2, lincolnKnockdownFrames.length - 1);
+  return lincolnKnockdownFrames[frameIndex];
+}
+
+function drawLincolnHat(f) {
+  const age = Math.max(0, f.knockdownAge - knockoutImpactHold);
+  const t = Math.min(age, 94);
+  const dir = f.knockdownDir || f.dir || 1;
+  const hatW = lincolnHatSprite.naturalWidth;
+  const hatH = lincolnHatSprite.naturalHeight;
+  const x = f.x - dir * (18 + t * 1.05);
+  const y = floorY - 232 - t * 2.15 + t * t * 0.04;
+  const angle = dir * (0.25 + t * 0.17);
+
+  ctx.save();
+  ctx.translate(Math.round(x), Math.round(y));
+  ctx.rotate(angle);
+  ctx.drawImage(lincolnHatSprite, -Math.round(hatW / 2), -Math.round(hatH / 2), hatW, hatH);
+  ctx.restore();
 }
 
 function lincolnJumpFrameFor(f) {
