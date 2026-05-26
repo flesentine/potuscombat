@@ -45,7 +45,7 @@ const lincolnPunchSprite = new Image();
 lincolnPunchSprite.src = "assets/lincoln-punch-game.png";
 const lincolnKickSprite = new Image();
 lincolnKickSprite.src = "assets/lincoln-kick-game.png";
-const lincolnWalkSprites = [1, 2, 3, 4, 5].map((frame) => {
+const lincolnWalkSprites = [1, 2, 3, 4].map((frame) => {
   const image = new Image();
   image.src = `assets/lincoln-walk-${frame}-game.png`;
   return image;
@@ -192,13 +192,12 @@ const lincolnFrames = {
   }
 };
 const lincolnWalkFrames = [
-  { image: lincolnWalkSprites[0], crop: { x: 0, y: 0, w: 154, h: 270 }, height: 270, offsetX: 0 },
-  { image: lincolnWalkSprites[1], crop: { x: 0, y: 0, w: 130, h: 270 }, height: 270, offsetX: 0 },
-  { image: lincolnWalkSprites[2], crop: { x: 0, y: 0, w: 182, h: 270 }, height: 270, offsetX: 0 },
-  { image: lincolnWalkSprites[3], crop: { x: 0, y: 0, w: 153, h: 270 }, height: 270, offsetX: 0 },
-  { image: lincolnWalkSprites[4], crop: { x: 0, y: 0, w: 166, h: 270 }, height: 270, offsetX: 0 }
+  { image: lincolnWalkSprites[0], crop: { x: 0, y: 0, w: 169, h: 270 }, height: 270, offsetX: 0 },
+  { image: lincolnWalkSprites[1], crop: { x: 0, y: 0, w: 148, h: 270 }, height: 270, offsetX: 0 },
+  { image: lincolnWalkSprites[2], crop: { x: 0, y: 0, w: 178, h: 270 }, height: 270, offsetX: 0 },
+  { image: lincolnWalkSprites[3], crop: { x: 0, y: 0, w: 141, h: 270 }, height: 270, offsetX: 0 }
 ];
-const lincolnWalkCycle = [0, 1, 2, 4, 3, 2];
+const lincolnWalkCycle = [0, 1, 2, 3];
 
 const presidents = [
   {
