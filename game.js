@@ -260,9 +260,9 @@ const lincolnJumpFrames = [
   { image: lincolnJumpSprites[5], crop: { x: 0, y: 0, w: 128, h: 196 }, height: 196, offsetX: 1 }
 ];
 const lincolnKnockdownFrames = [
-  { image: lincolnKnockdownSprites[0], crop: { x: 0, y: 0, w: 199, h: 158 }, height: 158, offsetX: -4, shadowWidth: 84 },
-  { image: lincolnKnockdownSprites[1], crop: { x: 0, y: 0, w: 206, h: 138 }, height: 138, offsetX: 0, shadowWidth: 94 },
-  { image: lincolnKnockdownSprites[2], crop: { x: 0, y: 0, w: 202, h: 103 }, height: 103, offsetX: 4, shadowWidth: 106 },
+  { image: lincolnKnockdownSprites[0], crop: { x: 0, y: 0, w: 199, h: 158 }, height: 158, offsetX: -4, lift: 58, shadowWidth: 84 },
+  { image: lincolnKnockdownSprites[1], crop: { x: 0, y: 0, w: 206, h: 138 }, height: 138, offsetX: 0, lift: 34, shadowWidth: 94 },
+  { image: lincolnKnockdownSprites[2], crop: { x: 0, y: 0, w: 202, h: 103 }, height: 103, offsetX: 4, lift: 7, shadowWidth: 106 },
   { image: lincolnKnockdownSprites[3], crop: { x: 0, y: 0, w: 263, h: 93 }, height: 93, offsetX: 6, shadowWidth: 122 },
   { image: lincolnKnockdownSprites[4], crop: { x: 0, y: 0, w: 275, h: 52 }, height: 52, offsetX: 6, shadowWidth: 132 }
 ];
@@ -908,13 +908,15 @@ function lincolnKnockdownFrameFor(f) {
 
 function drawLincolnHat(f) {
   const age = Math.max(0, f.knockdownAge - knockoutImpactHold);
-  const t = Math.min(age, 86);
+  const t = Math.min(age, 104);
   const dir = f.knockdownDir || f.dir || 1;
   const hatW = lincolnHatSprite.naturalWidth;
   const hatH = lincolnHatSprite.naturalHeight;
-  const x = f.x - dir * (8 + t * 0.42);
-  const y = floorY - 232 - t * 1.25 + t * t * 0.022;
-  const angle = dir * (0.25 + t * 0.095);
+  const x = f.x - dir * (8 + t * 0.34);
+  const airY = floorY - 244 - t * 1.45 + t * t * 0.043;
+  const y = Math.min(floorY - hatH / 2 - 7, airY);
+  const landed = airY >= floorY - hatH / 2 - 7;
+  const angle = landed ? dir * 1.25 : dir * (0.25 + t * 0.11);
 
   ctx.save();
   ctx.translate(Math.round(x), Math.round(y));
