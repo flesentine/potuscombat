@@ -50,6 +50,11 @@ const lincolnWalkSprites = [1, 2, 3, 4, 5].map((frame) => {
   image.src = `assets/lincoln-walk-${frame}-game.png`;
   return image;
 });
+const lincolnJumpSprites = [1, 2, 3, 4, 5, 6].map((frame) => {
+  const image = new Image();
+  image.src = `assets/lincoln-jump-${frame}-game.png`;
+  return image;
+});
 const washingtonSprite = new Image();
 washingtonSprite.src = "assets/washington-idle.png";
 const washingtonPunchSprite = new Image();
@@ -199,6 +204,14 @@ const lincolnWalkFrames = [
   { image: lincolnWalkSprites[4], crop: { x: 0, y: 0, w: 144, h: 270 }, height: 270, offsetX: -4 }
 ];
 const lincolnWalkCycle = [0, 1, 2, 3, 4];
+const lincolnJumpFrames = [
+  { image: lincolnJumpSprites[0], crop: { x: 0, y: 0, w: 127, h: 200 }, height: 200, offsetX: 1 },
+  { image: lincolnJumpSprites[1], crop: { x: 0, y: 0, w: 127, h: 270 }, height: 270, offsetX: 0 },
+  { image: lincolnJumpSprites[2], crop: { x: 0, y: 0, w: 133, h: 225 }, height: 225, offsetX: 2 },
+  { image: lincolnJumpSprites[3], crop: { x: 0, y: 0, w: 123, h: 196 }, height: 196, offsetX: 0 },
+  { image: lincolnJumpSprites[4], crop: { x: 0, y: 0, w: 130, h: 270 }, height: 270, offsetX: 0 },
+  { image: lincolnJumpSprites[5], crop: { x: 0, y: 0, w: 128, h: 196 }, height: 196, offsetX: 1 }
+];
 
 const presidents = [
   {
@@ -739,6 +752,7 @@ function drawLincolnSprite(f) {
   const hurtFlash = f.hurt > 0 && tick % 4 < 2;
   const displayH = frame.height;
   const displayW = Math.round(displayH * (frame.crop.w / frame.crop.h));
+  const lift = frame.lift || 0;
 
   drawShadow(f, 76);
   ctx.save();
@@ -754,7 +768,7 @@ function drawLincolnSprite(f) {
   ctx.drawImage(
     preparedFrameCanvas(frame, displayW, displayH),
     -Math.round(displayW / 2) + frame.offsetX,
-    -displayH
+    -displayH - lift
   );
   ctx.globalAlpha = 1;
 
@@ -798,10 +812,25 @@ function lincolnFrameFor(f) {
   if (f.attack > 6 && f.attackType === "punch" && lincolnPunchSprite.complete && lincolnPunchSprite.naturalWidth > 0) {
     return lincolnFrames.punch;
   }
+  if (f.jumping && lincolnJumpSprites.every((image) => image.complete && image.naturalWidth > 0)) {
+    return lincolnJumpFrameFor(f);
+  }
   if (!f.jumping && Math.sign(f.vx) === f.dir && Math.abs(f.vx) > 0.2 && lincolnWalkSprites.every((image) => image.complete && image.naturalWidth > 0)) {
     return lincolnWalkFrames[lincolnWalkCycle[Math.floor(tick / walkFrameTicks) % lincolnWalkCycle.length]];
   }
   return lincolnFrames.idle;
+}
+
+function lincolnJumpFrameFor(f) {
+  const air = floorY - f.y;
+  if (f.vy < 0 && air < 36) return lincolnJumpFrames[0];
+  if (f.vy < -10) return lincolnJumpFrames[1];
+  if (f.vy < -4) return lincolnJumpFrames[2];
+  if (f.vy < -0.8) return lincolnJumpFrames[3];
+  if (f.vy < 2.8) return lincolnJumpFrames[3];
+  if (f.vy < 9) return lincolnJumpFrames[4];
+  if (air < 44) return lincolnJumpFrames[5];
+  return lincolnJumpFrames[5];
 }
 
 function fighterBob(f) {
