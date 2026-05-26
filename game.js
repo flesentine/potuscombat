@@ -192,11 +192,11 @@ const lincolnFrames = {
   }
 };
 const lincolnWalkFrames = [
-  { image: lincolnWalkSprites[0], crop: { x: 0, y: 0, w: 151, h: 270 }, height: 270, offsetX: 0 },
-  { image: lincolnWalkSprites[1], crop: { x: 0, y: 0, w: 96, h: 270 }, height: 270, offsetX: 0 },
-  { image: lincolnWalkSprites[2], crop: { x: 0, y: 0, w: 142, h: 270 }, height: 270, offsetX: 0 },
-  { image: lincolnWalkSprites[3], crop: { x: 0, y: 0, w: 96, h: 270 }, height: 270, offsetX: 0 },
-  { image: lincolnWalkSprites[4], crop: { x: 0, y: 0, w: 144, h: 270 }, height: 270, offsetX: 0 }
+  { image: lincolnWalkSprites[0], crop: { x: 0, y: 0, w: 151, h: 270 }, height: 270, offsetX: -11 },
+  { image: lincolnWalkSprites[1], crop: { x: 0, y: 0, w: 96, h: 270 }, height: 270, offsetX: 2 },
+  { image: lincolnWalkSprites[2], crop: { x: 0, y: 0, w: 142, h: 270 }, height: 270, offsetX: -1 },
+  { image: lincolnWalkSprites[3], crop: { x: 0, y: 0, w: 96, h: 270 }, height: 270, offsetX: 3 },
+  { image: lincolnWalkSprites[4], crop: { x: 0, y: 0, w: 144, h: 270 }, height: 270, offsetX: -4 }
 ];
 const lincolnWalkCycle = [0, 1, 2, 3, 4];
 
