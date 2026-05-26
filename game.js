@@ -260,11 +260,11 @@ const lincolnJumpFrames = [
   { image: lincolnJumpSprites[5], crop: { x: 0, y: 0, w: 128, h: 196 }, height: 196, offsetX: 1 }
 ];
 const lincolnKnockdownFrames = [
-  { image: lincolnKnockdownSprites[0], crop: { x: 0, y: 0, w: 239, h: 190 }, height: 190, offsetX: -4, shadowWidth: 92 },
-  { image: lincolnKnockdownSprites[1], crop: { x: 0, y: 0, w: 248, h: 166 }, height: 166, offsetX: 0, shadowWidth: 104 },
-  { image: lincolnKnockdownSprites[2], crop: { x: 0, y: 0, w: 243, h: 124 }, height: 124, offsetX: 4, shadowWidth: 118 },
-  { image: lincolnKnockdownSprites[3], crop: { x: 0, y: 0, w: 316, h: 112 }, height: 112, offsetX: 6, shadowWidth: 140 },
-  { image: lincolnKnockdownSprites[4], crop: { x: 0, y: 0, w: 338, h: 64 }, height: 64, offsetX: 8, shadowWidth: 154 }
+  { image: lincolnKnockdownSprites[0], crop: { x: 0, y: 0, w: 199, h: 158 }, height: 158, offsetX: -4, shadowWidth: 84 },
+  { image: lincolnKnockdownSprites[1], crop: { x: 0, y: 0, w: 206, h: 138 }, height: 138, offsetX: 0, shadowWidth: 94 },
+  { image: lincolnKnockdownSprites[2], crop: { x: 0, y: 0, w: 202, h: 103 }, height: 103, offsetX: 4, shadowWidth: 106 },
+  { image: lincolnKnockdownSprites[3], crop: { x: 0, y: 0, w: 263, h: 93 }, height: 93, offsetX: 6, shadowWidth: 122 },
+  { image: lincolnKnockdownSprites[4], crop: { x: 0, y: 0, w: 275, h: 52 }, height: 52, offsetX: 6, shadowWidth: 132 }
 ];
 
 const presidents = [
@@ -908,13 +908,13 @@ function lincolnKnockdownFrameFor(f) {
 
 function drawLincolnHat(f) {
   const age = Math.max(0, f.knockdownAge - knockoutImpactHold);
-  const t = Math.min(age, 94);
+  const t = Math.min(age, 86);
   const dir = f.knockdownDir || f.dir || 1;
   const hatW = lincolnHatSprite.naturalWidth;
   const hatH = lincolnHatSprite.naturalHeight;
-  const x = f.x - dir * (18 + t * 1.05);
-  const y = floorY - 232 - t * 2.15 + t * t * 0.04;
-  const angle = dir * (0.25 + t * 0.17);
+  const x = f.x - dir * (8 + t * 0.42);
+  const y = floorY - 232 - t * 1.25 + t * t * 0.022;
+  const angle = dir * (0.25 + t * 0.095);
 
   ctx.save();
   ctx.translate(Math.round(x), Math.round(y));
