@@ -51,6 +51,10 @@ const lincolnCrouchPunchSprite = new Image();
 lincolnCrouchPunchSprite.src = "assets/lincoln-crouch-punch-game.png";
 const lincolnCrouchKickSprite = new Image();
 lincolnCrouchKickSprite.src = "assets/lincoln-crouch-kick-game.png";
+const lincolnBlockSprite = new Image();
+lincolnBlockSprite.src = "assets/lincoln-block-game.png";
+const lincolnCrouchBlockSprite = new Image();
+lincolnCrouchBlockSprite.src = "assets/lincoln-crouch-block-game.png";
 const lincolnWalkSprites = [1, 2, 3, 4, 5].map((frame) => {
   const image = new Image();
   image.src = `assets/lincoln-walk-${frame}-game.png`;
@@ -218,6 +222,18 @@ const lincolnFrames = {
     crop: { x: 0, y: 0, w: 233, h: 164 },
     height: 164,
     offsetX: 55
+  },
+  block: {
+    image: lincolnBlockSprite,
+    crop: { x: 0, y: 0, w: 122, h: 270 },
+    height: 270,
+    offsetX: 6
+  },
+  crouchBlock: {
+    image: lincolnCrouchBlockSprite,
+    crop: { x: 0, y: 0, w: 136, h: 176 },
+    height: 176,
+    offsetX: -3
   }
 };
 const lincolnWalkFrames = [
@@ -783,7 +799,7 @@ function drawLincolnSprite(f) {
   ctx.translate(Math.round(f.x), Math.round(f.y + bob));
   ctx.scale(f.dir, 1);
 
-  if (f.block) {
+  if (f.block && frame !== lincolnFrames.block && frame !== lincolnFrames.crouchBlock) {
     ctx.fillStyle = "rgba(158, 228, 255, 0.28)";
     ctx.fillRect(-54, -142, 26, 112);
   }
@@ -844,6 +860,12 @@ function lincolnFrameFor(f) {
   }
   if (f.jumping && lincolnJumpSprites.every((image) => image.complete && image.naturalWidth > 0)) {
     return lincolnJumpFrameFor(f);
+  }
+  if (f.crouching && f.block && lincolnCrouchBlockSprite.complete && lincolnCrouchBlockSprite.naturalWidth > 0) {
+    return lincolnFrames.crouchBlock;
+  }
+  if (f.block && lincolnBlockSprite.complete && lincolnBlockSprite.naturalWidth > 0) {
+    return lincolnFrames.block;
   }
   if (!f.jumping && Math.sign(f.vx) === f.dir && Math.abs(f.vx) > 0.2 && lincolnWalkSprites.every((image) => image.complete && image.naturalWidth > 0)) {
     return lincolnWalkFrames[lincolnWalkCycle[Math.floor(tick / walkFrameTicks) % lincolnWalkCycle.length]];
