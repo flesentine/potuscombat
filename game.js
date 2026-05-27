@@ -925,7 +925,7 @@ function drawLincolnHat(f, hurtFlash) {
   const hatW = lincolnHatSprite.naturalWidth;
   const hatH = lincolnHatSprite.naturalHeight;
   const launch = lincolnKnockdownFrames[0].hatAnchor;
-  const startX = f.x + dir * launch.x;
+  const startX = f.x + f.dir * launch.x;
   const startY = f.y + launch.y;
   const x = startX + dir * t * 0.42;
   const airY = startY - t * 1.45 + t * t * 0.043;
