@@ -803,7 +803,8 @@ function drawFighter(f) {
 function drawLincolnSprite(f) {
   const frame = lincolnFrameFor(f);
   const bob = fighterBob(f);
-  const hurtFlash = f.hurt > 0 && tick % 4 < 2;
+  const settledKnockdown = f.knockdown > 0 && f.knockdownLanded > 0;
+  const hurtFlash = f.hurt > 0 && !settledKnockdown && tick % 4 < 2;
   const displayH = frame.height;
   const displayW = Math.round(displayH * (frame.crop.w / frame.crop.h));
   const lift = frame.lift || 0;
@@ -836,7 +837,7 @@ function drawLincolnSprite(f) {
   ctx.restore();
 
   if (f.knockdown > 0 && lincolnHatSprite.complete && lincolnHatSprite.naturalWidth > 0) {
-    drawLincolnHat(f);
+    drawLincolnHat(f, hurtFlash);
   }
 }
 
@@ -906,7 +907,7 @@ function lincolnKnockdownFrameFor(f) {
   return lincolnKnockdownFrames[frameIndex];
 }
 
-function drawLincolnHat(f) {
+function drawLincolnHat(f, hurtFlash) {
   const age = Math.max(0, f.knockdownAge - knockoutImpactHold);
   const t = Math.min(age, 104);
   const dir = f.knockdownDir || f.dir || 1;
@@ -919,6 +920,7 @@ function drawLincolnHat(f) {
   const angle = landed ? dir * 1.25 : dir * (0.25 + t * 0.11);
 
   ctx.save();
+  ctx.globalAlpha = hurtFlash ? 0.55 : 1;
   ctx.translate(Math.round(x), Math.round(y));
   ctx.rotate(angle);
   ctx.drawImage(lincolnHatSprite, -Math.round(hatW / 2), -Math.round(hatH / 2), hatW, hatH);
