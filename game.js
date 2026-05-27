@@ -45,6 +45,8 @@ const lincolnPunchSprite = new Image();
 lincolnPunchSprite.src = "assets/lincoln-punch-game.png";
 const lincolnKickSprite = new Image();
 lincolnKickSprite.src = "assets/lincoln-kick-game.png";
+const lincolnHitSprite = new Image();
+lincolnHitSprite.src = "assets/lincoln-hit-game.png";
 const lincolnCrouchSprite = new Image();
 lincolnCrouchSprite.src = "assets/lincoln-crouch-game.png";
 const lincolnCrouchPunchSprite = new Image();
@@ -211,6 +213,12 @@ const lincolnFrames = {
     crop: { x: 0, y: 0, w: 256, h: 270 },
     height: 270,
     offsetX: 18
+  },
+  hit: {
+    image: lincolnHitSprite,
+    crop: { x: 0, y: 0, w: 159, h: 270 },
+    height: 270,
+    offsetX: 15
   },
   crouch: {
     image: lincolnCrouchSprite,
@@ -867,6 +875,9 @@ function preparedFrameCanvas(frame, displayW, displayH) {
 function lincolnFrameFor(f) {
   if (f.knockdown > 0 && lincolnKnockdownSprites.every((image) => image.complete && image.naturalWidth > 0)) {
     return lincolnKnockdownFrameFor(f);
+  }
+  if (f.hitReact > 0 && lincolnHitSprite.complete && lincolnHitSprite.naturalWidth > 0) {
+    return lincolnFrames.hit;
   }
   if (f.attack > 6 && f.attackType === "crouch-kick" && lincolnCrouchKickSprite.complete && lincolnCrouchKickSprite.naturalWidth > 0) {
     return lincolnFrames.crouchKick;
