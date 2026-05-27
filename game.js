@@ -268,7 +268,7 @@ const lincolnJumpFrames = [
   { image: lincolnJumpSprites[5], crop: { x: 0, y: 0, w: 128, h: 196 }, height: 196, offsetX: 1 }
 ];
 const lincolnKnockdownFrames = [
-  { image: lincolnKnockdownSprites[0], crop: { x: 0, y: 0, w: 199, h: 158 }, height: 158, offsetX: -4, lift: 58, shadowWidth: 84, hatAnchor: { x: 8, y: -218 } },
+  { image: lincolnKnockdownSprites[0], crop: { x: 0, y: 0, w: 199, h: 158 }, height: 158, offsetX: -4, lift: 58, shadowWidth: 84, hatAnchor: { x: -82, y: -218 } },
   { image: lincolnKnockdownSprites[1], crop: { x: 0, y: 0, w: 206, h: 138 }, height: 138, offsetX: 0, lift: 34, shadowWidth: 94 },
   { image: lincolnKnockdownSprites[2], crop: { x: 0, y: 0, w: 202, h: 103 }, height: 103, offsetX: 4, lift: 7, shadowWidth: 106 },
   { image: lincolnKnockdownSprites[3], crop: { x: 0, y: 0, w: 263, h: 93 }, height: 93, offsetX: 6, shadowWidth: 122 },
