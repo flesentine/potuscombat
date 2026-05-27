@@ -260,7 +260,7 @@ const lincolnJumpFrames = [
   { image: lincolnJumpSprites[5], crop: { x: 0, y: 0, w: 128, h: 196 }, height: 196, offsetX: 1 }
 ];
 const lincolnKnockdownFrames = [
-  { image: lincolnKnockdownSprites[0], crop: { x: 0, y: 0, w: 199, h: 158 }, height: 158, offsetX: -4, lift: 58, shadowWidth: 84 },
+  { image: lincolnKnockdownSprites[0], crop: { x: 0, y: 0, w: 199, h: 158 }, height: 158, offsetX: -4, lift: 58, shadowWidth: 84, hatAnchor: { x: -80, y: -208 } },
   { image: lincolnKnockdownSprites[1], crop: { x: 0, y: 0, w: 206, h: 138 }, height: 138, offsetX: 0, lift: 34, shadowWidth: 94 },
   { image: lincolnKnockdownSprites[2], crop: { x: 0, y: 0, w: 202, h: 103 }, height: 103, offsetX: 4, lift: 7, shadowWidth: 106 },
   { image: lincolnKnockdownSprites[3], crop: { x: 0, y: 0, w: 263, h: 93 }, height: 93, offsetX: 6, shadowWidth: 122 },
@@ -913,8 +913,11 @@ function drawLincolnHat(f, hurtFlash) {
   const dir = f.knockdownDir || f.dir || 1;
   const hatW = lincolnHatSprite.naturalWidth;
   const hatH = lincolnHatSprite.naturalHeight;
-  const x = f.x - dir * (8 + t * 0.34);
-  const airY = floorY - 244 - t * 1.45 + t * t * 0.043;
+  const launch = lincolnKnockdownFrames[0].hatAnchor;
+  const startX = f.x + dir * launch.x;
+  const startY = f.y + launch.y;
+  const x = startX - dir * t * 0.34;
+  const airY = startY - t * 1.45 + t * t * 0.043;
   const y = Math.min(floorY - hatH / 2 - 7, airY);
   const landed = airY >= floorY - hatH / 2 - 7;
   const angle = landed ? dir * 1.25 : dir * (0.25 + t * 0.11);
