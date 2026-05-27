@@ -920,7 +920,8 @@ function lincolnKnockdownFrameFor(f) {
 
 function drawLincolnHat(f, hurtFlash) {
   const age = Math.max(0, f.knockdownAge - knockoutImpactHold);
-  const t = Math.min(age, 104);
+  const releaseDelay = 4;
+  const t = Math.min(Math.max(0, age - releaseDelay), 112);
   const dir = f.knockdownDir || f.dir || 1;
   const hatW = lincolnHatSprite.naturalWidth;
   const hatH = lincolnHatSprite.naturalHeight;
@@ -929,8 +930,11 @@ function drawLincolnHat(f, hurtFlash) {
   const startY = f.y + launch.y;
   const x = startX + dir * t * 0.42;
   const airY = startY - t * 1.45 + t * t * 0.043;
-  const y = Math.min(floorY - hatH / 2 - 7, airY);
-  const landed = airY >= floorY - hatH / 2 - 7;
+  const groundY = floorY - hatH / 2 - 7;
+  const landed = airY >= groundY;
+  const bounceAge = Math.max(0, t - 90);
+  const bounce = landed && bounceAge < 20 ? Math.sin((bounceAge / 20) * Math.PI) * (7 * (1 - bounceAge / 20)) : 0;
+  const y = landed ? groundY - bounce : airY;
   const angle = landed ? dir * 1.25 : dir * (0.25 + t * 0.11);
 
   ctx.save();
