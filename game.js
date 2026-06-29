@@ -824,10 +824,10 @@ let aiDifficulty = "normal";
 let debugBoxes = false;
 let assetsReady = false;
 const fordBackgroundActors = [
-  { x: 124, y: 354, scale: 1.35, palette: ["#1b1b24", "#d7ad83", "#8a5a32"], delay: 0, role: "stagehand" },
-  { x: 174, y: 356, scale: 1.3, palette: ["#20242b", "#e0b184", "#37466f"], delay: 24, role: "stagehand" },
-  { x: 780, y: 352, scale: 1.28, palette: ["#17171e", "#d9aa80", "#5d3f72"], delay: 10, role: "actor" },
-  { x: 834, y: 356, scale: 1.25, palette: ["#1a1d24", "#d0a075", "#6b5431"], delay: 38, role: "actor" }
+  { x: 336, y: 352, scale: 1.18, delay: 0, role: "asa", dir: 1 },
+  { x: 428, y: 351, scale: 1.12, delay: 20, role: "mountchessington", dir: -1 },
+  { x: 492, y: 351, scale: 1.08, delay: 42, role: "augusta", dir: -1 },
+  { x: 642, y: 351, scale: 1.08, delay: 66, role: "florence", dir: -1 }
 ];
 // Hit pause freezes combat simulation for a few frames after impact. KO slow
 // motion is different: it lets the simulation continue, just at a lower rate.
@@ -2144,38 +2144,108 @@ function drawFordBackgroundActors() {
   fordBackgroundActors.forEach(drawFordBackgroundActor);
 }
 
-function drawFordBackgroundActor(actor, index) {
-  const frame = Math.floor((tick + actor.delay) / 36) % 4;
-  const wave = frame === 1 || frame === 2;
+function drawFordBackgroundActor(actor) {
+  const frame = Math.floor((tick + actor.delay) / 34) % 4;
   const bob = frame === 2 ? -2 : frame === 0 ? 1 : 0;
-  const look = Math.floor((tick + actor.delay + index * 17) / 96) % 2 === 0 ? -1 : 1;
   const s = actor.scale;
 
   ctx.save();
   ctx.translate(Math.round(actor.x), Math.round(actor.y + bob));
+  ctx.scale(actor.dir || 1, 1);
   ctx.scale(s, s);
-  ctx.fillStyle = "rgba(0, 0, 0, 0.28)";
-  ctx.fillRect(-14, 35, 28, 6);
-  ctx.fillStyle = actor.palette[0];
-  ctx.fillRect(-8, -32, 16, 12);
-  ctx.fillRect(-10, -20, 20, 30);
-  ctx.fillStyle = actor.palette[1];
-  ctx.fillRect(-6, -23, 12, 10);
-  ctx.fillStyle = "#111018";
-  ctx.fillRect(-11, -37, 22, 5);
-  ctx.fillRect(-7, -45, 14, 10);
-  ctx.fillStyle = actor.palette[2];
-  ctx.fillRect(-12, 8, 9, 28);
-  ctx.fillRect(3, 8, 9, 28);
-  ctx.fillStyle = actor.palette[1];
-  ctx.fillRect(look > 0 ? 7 : -19, -15, 12, 6);
-  ctx.fillRect(wave ? -20 : -16, wave ? -28 : -13, 6, 14);
-  if (actor.role === "stagehand") {
-    ctx.fillStyle = "#b68b44";
-    ctx.fillRect(14, 12, 5, 32);
-    ctx.fillRect(8, 41, 18, 4);
-  }
+  if (actor.role === "asa") drawAsaTrenchard(frame);
+  if (actor.role === "mountchessington") drawMrsMountchessington(frame);
+  if (actor.role === "augusta") drawAugusta(frame);
+  if (actor.role === "florence") drawFlorence(frame);
   ctx.restore();
+}
+
+function drawStageActorShadow(w, y = 35) {
+  ctx.fillStyle = "rgba(0, 0, 0, 0.28)";
+  ctx.fillRect(-Math.round(w / 2), y, w, 6);
+}
+
+function drawAsaTrenchard(frame) {
+  const talk = frame === 1 || frame === 2;
+  drawStageActorShadow(32);
+  ctx.fillStyle = "#14151c";
+  ctx.fillRect(-9, -34, 18, 14);
+  ctx.fillRect(-11, -20, 22, 31);
+  ctx.fillStyle = "#d9ad80";
+  ctx.fillRect(-6, -25, 12, 10);
+  ctx.fillStyle = "#0d0d12";
+  ctx.fillRect(-14, -40, 28, 5);
+  ctx.fillRect(-8, -50, 16, 12);
+  ctx.fillStyle = "#7a4f2a";
+  ctx.fillRect(-13, 7, 10, 29);
+  ctx.fillRect(3, 7, 10, 29);
+  ctx.fillStyle = "#d9ad80";
+  ctx.fillRect(talk ? 10 : 8, talk ? -25 : -17, 20, 6);
+  ctx.fillRect(talk ? -31 : -26, talk ? -16 : -10, 19, 6);
+  ctx.fillStyle = "#f5d66f";
+  ctx.fillRect(28, -25, 5, 6);
+}
+
+function drawMrsMountchessington(frame) {
+  const fanOpen = frame !== 0;
+  drawStageActorShadow(36);
+  ctx.fillStyle = "#39243f";
+  ctx.fillRect(-13, -22, 26, 34);
+  ctx.fillRect(-20, 8, 40, 28);
+  ctx.fillStyle = "#d8a77d";
+  ctx.fillRect(-6, -30, 12, 11);
+  ctx.fillStyle = "#4c3022";
+  ctx.fillRect(-9, -38, 18, 10);
+  ctx.fillStyle = "#2a1b30";
+  ctx.fillRect(-15, -20, 7, 31);
+  ctx.fillStyle = "#d8a77d";
+  ctx.fillRect(10, -16, 15, 6);
+  ctx.fillStyle = fanOpen ? "#efe1b1" : "#b99763";
+  ctx.fillRect(23, fanOpen ? -28 : -19, fanOpen ? 18 : 8, fanOpen ? 16 : 9);
+  ctx.fillStyle = "#7d3c55";
+  ctx.fillRect(25, fanOpen ? -25 : -18, fanOpen ? 12 : 5, fanOpen ? 3 : 7);
+}
+
+function drawAugusta(frame) {
+  const flounce = frame === 1 || frame === 2;
+  const xShift = frame === 3 ? 8 : 0;
+  drawStageActorShadow(34 + xShift);
+  ctx.translate(xShift, 0);
+  ctx.fillStyle = "#234b48";
+  ctx.fillRect(-12, -23, 24, 34);
+  ctx.fillRect(-19, 8, 38, 29);
+  ctx.fillStyle = "#ddb083";
+  ctx.fillRect(-6, -31, 12, 10);
+  ctx.fillStyle = "#6b3a26";
+  ctx.fillRect(-10, -39, 20, 10);
+  ctx.fillStyle = "#1e3b3a";
+  ctx.fillRect(-17, -17, 8, 30);
+  ctx.fillStyle = "#ddb083";
+  ctx.fillRect(flounce ? 10 : 7, flounce ? -31 : -19, 18, 6);
+  ctx.fillRect(flounce ? 25 : 21, flounce ? -37 : -21, 5, 11);
+  ctx.fillStyle = "#eadfc2";
+  ctx.fillRect(flounce ? 28 : 23, flounce ? -39 : -23, 9, 5);
+}
+
+function drawFlorence(frame) {
+  const enter = frame === 0 ? 12 : frame === 1 ? 5 : 0;
+  drawStageActorShadow(32 + enter);
+  ctx.translate(enter, 0);
+  ctx.fillStyle = "#6e3438";
+  ctx.fillRect(-12, -22, 24, 33);
+  ctx.fillRect(-18, 8, 36, 28);
+  ctx.fillStyle = "#e0b184";
+  ctx.fillRect(-6, -30, 12, 10);
+  ctx.fillStyle = "#5a2f22";
+  ctx.fillRect(-10, -39, 20, 10);
+  ctx.fillStyle = "#55272d";
+  ctx.fillRect(-16, -15, 8, 28);
+  ctx.fillStyle = "#e0b184";
+  ctx.fillRect(9, -20, 16, 6);
+  ctx.fillStyle = "#f3f0cf";
+  ctx.fillRect(22, -25, 12, 14);
+  ctx.fillStyle = "#8b6b40";
+  ctx.fillRect(24, -23, 8, 2);
 }
 
 function drawHud() {
