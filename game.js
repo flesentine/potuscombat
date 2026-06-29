@@ -78,6 +78,14 @@ const AI_PERSONALITY = {
     aggression: 0.94, defense: 1.18, punish: 1.2, jump: 0.42, special: 0.7,
     preferredRange: 112, centerBias: 1.28, poke: "crouchKick"
   },
+  "John Adams": {
+    aggression: 0.86, defense: 1.24, punish: 1.08, jump: 0.46, special: 1.18,
+    preferredRange: 132, centerBias: 1.16, poke: "crouchKick"
+  },
+  "T. Roosevelt": {
+    aggression: 1.1, defense: 0.96, punish: 1.06, jump: 0.72, special: 1.25,
+    preferredRange: 94, centerBias: 1.04, poke: "crouchKick"
+  },
   default: {
     aggression: 1, defense: 1, punish: 1, jump: 1, special: 1,
     preferredRange: 104, centerBias: 1, poke: "kick"
@@ -97,6 +105,17 @@ const specialTuning = {
     range: 110,
     damage: 14
   }
+};
+const lincolnHatThrow = {
+  energyCost: 18,
+  frameSize: 64,
+  frames: 4,
+  frameTicks: 5,
+  speed: 8.2,
+  damage: 11,
+  life: 82,
+  hitbox: { w: 44, h: 34 },
+  releaseOffset: { x: 160, y: -196 }
 };
 const floorY = physics.floorY;
 const playerSpeed = physics.playerSpeed;
@@ -123,6 +142,8 @@ const pressed = new Set();
 const released = new Set();
 const stageImage = new Image();
 stageImage.src = "assets/presidential-stage-16bit.png";
+const fordTheatreStageImage = new Image();
+fordTheatreStageImage.src = "assets/fords-theatre-stage-16bit.png";
 const impactSparkSprite = new Image();
 impactSparkSprite.src = "assets/impact-spark.png";
 const lincolnSprite = new Image();
@@ -145,6 +166,10 @@ const lincolnCrouchBlockSprite = new Image();
 lincolnCrouchBlockSprite.src = "assets/lincoln-crouch-block-game.png";
 const lincolnHatSprite = new Image();
 lincolnHatSprite.src = "assets/lincoln-hat-game.png";
+const lincolnHatProjectileSprite = new Image();
+lincolnHatProjectileSprite.src = "assets/lincoln-hat-projectile-sheet.png";
+const lincolnHatThrowSprite = new Image();
+lincolnHatThrowSprite.src = "assets/lincoln-hat-throw-sheet-game.png?v=7";
 const lincolnKnockdownSprites = [1, 2, 3, 4, 5].map((frame) => {
   const image = new Image();
   image.src = `assets/lincoln-knockdown-${frame}-game.png`;
@@ -205,6 +230,49 @@ const washingtonJumpSprites = [1, 2, 3, 4, 5, 6].map((frame) => {
   image.src = `assets/washington-jump-${frame}.png`;
   return image;
 });
+const teddySprite = new Image();
+teddySprite.src = "assets/teddy-idle.png";
+const teddyPunchSprite = new Image();
+teddyPunchSprite.src = "assets/teddy-punch.png";
+const teddyKickSprite = new Image();
+teddyKickSprite.src = "assets/teddy-kick.png";
+const teddyHitSprite = new Image();
+teddyHitSprite.src = "assets/teddy-hit.png";
+const teddyBlockSprite = new Image();
+teddyBlockSprite.src = "assets/teddy-block.png";
+const teddyCrouchSprite = new Image();
+teddyCrouchSprite.src = "assets/teddy-crouch.png";
+const teddyCrouchPunchSprite = new Image();
+teddyCrouchPunchSprite.src = "assets/teddy-crouch-punch.png";
+const teddyCrouchKickSprite = new Image();
+teddyCrouchKickSprite.src = "assets/teddy-crouch-kick.png";
+const teddyCrouchBlockSprite = new Image();
+teddyCrouchBlockSprite.src = "assets/teddy-crouch-block.png";
+const teddyWalkSprites = [1, 2, 3, 4, 5].map((frame) => {
+  const image = new Image();
+  image.src = `assets/teddy-walk-${frame}.png`;
+  return image;
+});
+const teddyBackwalkSprites = [1, 2, 3, 4, 5].map((frame) => {
+  const image = new Image();
+  image.src = `assets/teddy-backwalk-${frame}.png`;
+  return image;
+});
+const teddyJumpSprites = [1, 2, 3, 4, 5, 6].map((frame) => {
+  const image = new Image();
+  image.src = `assets/teddy-jump-${frame}.png`;
+  return image;
+});
+const teddyKnockdownSprites = [1, 2, 3, 4, 5].map((frame) => {
+  const image = new Image();
+  image.src = `assets/teddy-knockdown-${frame}.png`;
+  return image;
+});
+const teddyVictorySprites = [1, 2].map((frame) => {
+  const image = new Image();
+  image.src = `assets/teddy-victory-${frame}.png`;
+  return image;
+});
 const criticalImages = [
   lincolnSprite,
   lincolnPunchSprite,
@@ -216,6 +284,8 @@ const criticalImages = [
   lincolnBlockSprite,
   lincolnCrouchBlockSprite,
   lincolnHatSprite,
+  lincolnHatProjectileSprite,
+  lincolnHatThrowSprite,
   ...lincolnKnockdownSprites,
   ...lincolnWalkSprites,
   ...lincolnJumpSprites,
@@ -233,9 +303,23 @@ const criticalImages = [
   ...washingtonKnockdownSprites,
   ...washingtonWalkSprites,
   ...washingtonBackwalkSprites,
-  ...washingtonJumpSprites
+  ...washingtonJumpSprites,
+  teddySprite,
+  teddyPunchSprite,
+  teddyKickSprite,
+  teddyHitSprite,
+  teddyBlockSprite,
+  teddyCrouchSprite,
+  teddyCrouchPunchSprite,
+  teddyCrouchKickSprite,
+  teddyCrouchBlockSprite,
+  ...teddyWalkSprites,
+  ...teddyBackwalkSprites,
+  ...teddyJumpSprites,
+  ...teddyKnockdownSprites,
+  ...teddyVictorySprites
 ];
-const optionalImages = [stageImage, impactSparkSprite];
+const optionalImages = [stageImage, fordTheatreStageImage, impactSparkSprite];
 const allImages = [...criticalImages, ...optionalImages];
 
 allImages.forEach((image) => {
@@ -419,12 +503,120 @@ const lincolnJumpFrames = [
   { image: lincolnJumpSprites[4], crop: { x: 0, y: 0, w: 130, h: 270 }, height: 270, offsetX: -2 },
   { image: lincolnJumpSprites[5], crop: { x: 0, y: 0, w: 128, h: 196 }, height: 196, offsetX: 1 }
 ];
+const lincolnHatThrowFrames = [0, 1, 2, 3].map((frame) => ({
+  image: lincolnHatThrowSprite,
+  crop: { x: frame * 300, y: 0, w: 300, h: 270 },
+  height: 292,
+  anchorX: [136, 113, 101, 133][frame],
+  offsetX: 0,
+  shadowWidth: 76
+}));
 const lincolnKnockdownFrames = [
   { image: lincolnKnockdownSprites[0], crop: { x: 0, y: 0, w: 199, h: 158 }, height: 158, offsetX: -4, lift: 58, shadowWidth: 84, hatAnchor: { x: -82, y: -218 } },
   { image: lincolnKnockdownSprites[1], crop: { x: 0, y: 0, w: 206, h: 138 }, height: 138, offsetX: 0, lift: 34, shadowWidth: 94 },
   { image: lincolnKnockdownSprites[2], crop: { x: 0, y: 0, w: 202, h: 103 }, height: 103, offsetX: 4, lift: 7, shadowWidth: 106 },
   { image: lincolnKnockdownSprites[3], crop: { x: 0, y: 0, w: 263, h: 93 }, height: 93, offsetX: 6, shadowWidth: 122 },
   { image: lincolnKnockdownSprites[4], crop: { x: 0, y: 0, w: 275, h: 52 }, height: 52, offsetX: 6, shadowWidth: 132 }
+];
+const teddyFrames = {
+  idle: {
+    image: teddySprite,
+    crop: { x: 0, y: 0, w: 131, h: 238 },
+    height: 220,
+    offsetX: 0,
+    shadowWidth: 78
+  },
+  punch: {
+    image: teddyPunchSprite,
+    crop: { x: 0, y: 0, w: 211, h: 236 },
+    height: 220,
+    offsetX: 22,
+    shadowWidth: 86
+  },
+  kick: {
+    image: teddyKickSprite,
+    crop: { x: 0, y: 0, w: 189, h: 236 },
+    height: 218,
+    offsetX: 24,
+    shadowWidth: 92
+  },
+  hit: {
+    image: teddyHitSprite,
+    crop: { x: 0, y: 0, w: 149, h: 218 },
+    height: 220,
+    offsetX: 2,
+    shadowWidth: 78
+  },
+  block: {
+    image: teddyBlockSprite,
+    crop: { x: 0, y: 0, w: 202, h: 396 },
+    height: 218,
+    offsetX: 2,
+    shadowWidth: 78
+  },
+  crouch: {
+    image: teddyCrouchSprite,
+    crop: { x: 0, y: 0, w: 113, h: 160 },
+    height: 156,
+    offsetX: -4,
+    shadowWidth: 96
+  },
+  crouchPunch: {
+    image: teddyCrouchPunchSprite,
+    crop: { x: 0, y: 0, w: 169, h: 159 },
+    height: 148,
+    offsetX: 24,
+    shadowWidth: 102
+  },
+  crouchKick: {
+    image: teddyCrouchKickSprite,
+    crop: { x: 0, y: 0, w: 192, h: 147 },
+    height: 142,
+    offsetX: 28,
+    shadowWidth: 128
+  },
+  crouchBlock: {
+    image: teddyCrouchBlockSprite,
+    crop: { x: 0, y: 0, w: 192, h: 250 },
+    height: 156,
+    offsetX: 0,
+    shadowWidth: 90
+  }
+};
+const teddyWalkFrames = [
+  { image: teddyWalkSprites[0], crop: { x: 0, y: 0, w: 520, h: 500 }, height: 218, offsetX: -1, shadowWidth: 100 },
+  { image: teddyWalkSprites[1], crop: { x: 0, y: 0, w: 396, h: 500 }, height: 218, offsetX: 1, shadowWidth: 84 },
+  { image: teddyWalkSprites[2], crop: { x: 0, y: 0, w: 396, h: 500 }, height: 218, offsetX: 2, shadowWidth: 84 },
+  { image: teddyWalkSprites[3], crop: { x: 0, y: 0, w: 396, h: 500 }, height: 218, offsetX: 0, shadowWidth: 84 },
+  { image: teddyWalkSprites[4], crop: { x: 0, y: 0, w: 520, h: 500 }, height: 218, offsetX: -1, shadowWidth: 100 }
+];
+const teddyBackwalkFrames = [
+  { image: teddyBackwalkSprites[0], crop: { x: 0, y: 0, w: 147, h: 208 }, height: 218, offsetX: -1, shadowWidth: 84 },
+  { image: teddyBackwalkSprites[1], crop: { x: 0, y: 0, w: 183, h: 205 }, height: 218, offsetX: 0, shadowWidth: 84 },
+  { image: teddyBackwalkSprites[2], crop: { x: 0, y: 0, w: 177, h: 200 }, height: 218, offsetX: 1, shadowWidth: 84 },
+  { image: teddyBackwalkSprites[3], crop: { x: 0, y: 0, w: 158, h: 199 }, height: 218, offsetX: 0, shadowWidth: 84 },
+  { image: teddyBackwalkSprites[4], crop: { x: 0, y: 0, w: 123, h: 184 }, height: 218, offsetX: -1, shadowWidth: 84 }
+];
+const teddyWalkCycle = [0, 1, 2, 3, 4];
+const teddyBackwalkCycle = [0, 1, 2, 3, 4, 3, 2, 1];
+const teddyJumpFrames = [
+  { image: teddyJumpSprites[0], crop: { x: 0, y: 0, w: 109, h: 165 }, height: 158, offsetX: -2, shadowWidth: 92 },
+  { image: teddyJumpSprites[1], crop: { x: 0, y: 0, w: 130, h: 149 }, height: 218, offsetX: 2, shadowWidth: 84 },
+  { image: teddyJumpSprites[2], crop: { x: 0, y: 0, w: 124, h: 184 }, height: 220, offsetX: -1, lift: 14, shadowWidth: 78 },
+  { image: teddyJumpSprites[3], crop: { x: 0, y: 0, w: 135, h: 194 }, height: 228, offsetX: 0, lift: 28, shadowWidth: 72 },
+  { image: teddyJumpSprites[4], crop: { x: 0, y: 0, w: 127, h: 161 }, height: 184, offsetX: 2, shadowWidth: 84 },
+  { image: teddyJumpSprites[5], crop: { x: 0, y: 0, w: 179, h: 139 }, height: 164, offsetX: 4, shadowWidth: 92 }
+];
+const teddyKnockdownFrames = [
+  { image: teddyKnockdownSprites[0], crop: { x: 0, y: 0, w: 183, h: 113 }, height: 116, offsetX: 0, shadowWidth: 124 },
+  { image: teddyKnockdownSprites[1], crop: { x: 0, y: 0, w: 184, h: 110 }, height: 110, offsetX: 2, lift: 14, shadowWidth: 132 },
+  { image: teddyKnockdownSprites[2], crop: { x: 0, y: 0, w: 179, h: 68 }, height: 78, offsetX: 6, lift: 4, shadowWidth: 136 },
+  { image: teddyKnockdownSprites[3], crop: { x: 0, y: 0, w: 210, h: 60 }, height: 62, offsetX: 6, shadowWidth: 142 },
+  { image: teddyKnockdownSprites[4], crop: { x: 0, y: 0, w: 210, h: 60 }, height: 62, offsetX: 8, shadowWidth: 142 }
+];
+const teddyVictoryFrames = [
+  { image: teddyVictorySprites[0], crop: { x: 0, y: 0, w: 108, h: 238 }, height: 238, offsetX: 0, shadowWidth: 80 },
+  { image: teddyVictorySprites[1], crop: { x: 0, y: 0, w: 118, h: 220 }, height: 220, offsetX: 0, shadowWidth: 78 }
 ];
 
 const tuningGroups = [
@@ -447,6 +639,7 @@ const tuningGroups = [
   { fighter: "Lincoln", label: "lincoln walk", frames: lincolnWalkFrames },
   { fighter: "Lincoln", label: "lincoln jump", frames: lincolnJumpFrames },
   { fighter: "Lincoln", label: "lincoln punch", frames: [lincolnFrames.punch], move: "punch" },
+  { fighter: "Lincoln", label: "lincoln hat throw", frames: lincolnHatThrowFrames, move: "hatThrow" },
   { fighter: "Lincoln", label: "lincoln kick", frames: [lincolnFrames.kick], move: "kick" },
   { fighter: "Lincoln", label: "lincoln crouch", frames: [lincolnFrames.crouch] },
   { fighter: "Lincoln", label: "lincoln crouch punch", frames: [lincolnFrames.crouchPunch], move: "crouchPunch" },
@@ -454,7 +647,21 @@ const tuningGroups = [
   { fighter: "Lincoln", label: "lincoln block", frames: [lincolnFrames.block] },
   { fighter: "Lincoln", label: "lincoln crouch block", frames: [lincolnFrames.crouchBlock] },
   { fighter: "Lincoln", label: "lincoln hit", frames: [lincolnFrames.hit] },
-  { fighter: "Lincoln", label: "lincoln knockdown", frames: lincolnKnockdownFrames }
+  { fighter: "Lincoln", label: "lincoln knockdown", frames: lincolnKnockdownFrames },
+  { fighter: "T. Roosevelt", label: "teddy idle", frames: [teddyFrames.idle] },
+  { fighter: "T. Roosevelt", label: "teddy walk forward", frames: teddyWalkFrames },
+  { fighter: "T. Roosevelt", label: "teddy walk back", frames: teddyBackwalkFrames },
+  { fighter: "T. Roosevelt", label: "teddy jump", frames: teddyJumpFrames },
+  { fighter: "T. Roosevelt", label: "teddy punch", frames: [teddyFrames.punch], move: "punch" },
+  { fighter: "T. Roosevelt", label: "teddy kick", frames: [teddyFrames.kick], move: "kick" },
+  { fighter: "T. Roosevelt", label: "teddy crouch", frames: [teddyFrames.crouch] },
+  { fighter: "T. Roosevelt", label: "teddy crouch punch", frames: [teddyFrames.crouchPunch], move: "crouchPunch" },
+  { fighter: "T. Roosevelt", label: "teddy crouch kick", frames: [teddyFrames.crouchKick], move: "crouchKick" },
+  { fighter: "T. Roosevelt", label: "teddy block", frames: [teddyFrames.block] },
+  { fighter: "T. Roosevelt", label: "teddy crouch block", frames: [teddyFrames.crouchBlock] },
+  { fighter: "T. Roosevelt", label: "teddy hit", frames: [teddyFrames.hit] },
+  { fighter: "T. Roosevelt", label: "teddy victory", frames: teddyVictoryFrames },
+  { fighter: "T. Roosevelt", label: "teddy knockdown", frames: teddyKnockdownFrames }
 ];
 
 // startup = frames before hitbox becomes active
@@ -499,6 +706,16 @@ const moveDefs = {
     hitbox: { x: 18, y: -58, w: 116, h: 34 },
     attackType: "crouch-kick",
     label: "KICK"
+  },
+  hatThrow: {
+    startup: 22,
+    active: 1,
+    recovery: 42,
+    damage: lincolnHatThrow.damage,
+    hitbox: null,
+    attackType: "hat-throw",
+    label: "STOVEPIPE",
+    projectile: "lincolnHat"
   }
 };
 
@@ -514,10 +731,23 @@ const presidents = [
     line: "Cross the Delaware!"
   },
   {
+    name: "John Adams",
+    short: "ADAMS",
+    move: "Federalist Volley",
+    stage: "Peacefield Parlor",
+    colors: ["#23345c", "#eadfc2", "#c79a62"],
+    accent: "#f0c15a",
+    special: "cannon",
+    line: "Independence holds!",
+    spriteBase: "Washington",
+    // Washington was about 6'2"; Adams was about 5'7".
+    spriteScale: 67 / 74
+  },
+  {
     name: "Lincoln",
     short: "LINC",
     move: "Railsplitter Uppercut",
-    stage: "Marble Memorial Steps",
+    stage: "Ford's Theatre",
     colors: ["#1c1c22", "#5a351f", "#dadde5"],
     accent: "#77a7ff",
     special: "uppercut",
@@ -580,6 +810,7 @@ let frameLag = 0;
 let projectiles = [];
 let hitSparks = [];
 let combatEvents = [];
+let fordFinale = null;
 let roundTimer = timing.roundDurationFrames;
 const roundsToWin = 2;
 let playerRoundWins = 0;
@@ -592,6 +823,12 @@ let cpuEnabled = true;
 let aiDifficulty = "normal";
 let debugBoxes = false;
 let assetsReady = false;
+const fordBackgroundActors = [
+  { x: 124, y: 354, scale: 1.35, palette: ["#1b1b24", "#d7ad83", "#8a5a32"], delay: 0, role: "stagehand" },
+  { x: 174, y: 356, scale: 1.3, palette: ["#20242b", "#e0b184", "#37466f"], delay: 24, role: "stagehand" },
+  { x: 780, y: 352, scale: 1.28, palette: ["#17171e", "#d9aa80", "#5d3f72"], delay: 10, role: "actor" },
+  { x: 834, y: 356, scale: 1.25, palette: ["#1a1d24", "#d0a075", "#6b5431"], delay: 38, role: "actor" }
+];
 // Hit pause freezes combat simulation for a few frames after impact. KO slow
 // motion is different: it lets the simulation continue, just at a lower rate.
 let hitPauseFrames = 0;
@@ -601,6 +838,7 @@ let tuningGroupIndex = 0;
 let tuningFrameIndex = 0;
 
 function makeFighter(data, x, dir, human) {
+  const scale = fighterDataScale(data);
   return {
     data,
     x,
@@ -609,8 +847,8 @@ function makeFighter(data, x, dir, human) {
     vy: 0,
     dir,
     human,
-    w: 72,
-    h: 148,
+    w: 72 * scale,
+    h: 148 * scale,
     hp: 100,
     energy: 100,
     cooldown: 0,
@@ -659,6 +897,26 @@ function makeFighter(data, x, dir, human) {
   };
 }
 
+function fighterDataScale(data) {
+  return data.spriteScale || 1;
+}
+
+function fighterScale(f) {
+  return fighterDataScale(f.data);
+}
+
+function usesWashingtonSprites(f) {
+  return (f.data.spriteBase || f.data.name) === "Washington";
+}
+
+function usesLincolnSprites(f) {
+  return f.data.name === "Lincoln";
+}
+
+function usesTeddySprites(f) {
+  return f.data.name === "T. Roosevelt";
+}
+
 function populateSelects() {
   presidents.forEach((pres, index) => {
     const left = new Option(`${pres.name} - ${pres.move}`, String(index));
@@ -689,6 +947,7 @@ function startRound(p = matchPlayerData, r = matchRivalData) {
   projectiles = [];
   hitSparks = [];
   combatEvents = [];
+  fordFinale = null;
   hitPauseFrames = 0;
   tuningMode = false;
   pressed.clear();
@@ -770,6 +1029,7 @@ function resetPositionsOnly() {
   projectiles = [];
   hitSparks = [];
   combatEvents = [];
+  fordFinale = null;
   hitPauseFrames = 0;
   pressed.clear();
   released.clear();
@@ -834,6 +1094,18 @@ function updateMoveCards() {
   p2Move.textContent = `${r.move} - ${r.stage}`;
 }
 
+function activeStageImage() {
+  return isFordTheatreMatch() ? fordTheatreStageImage : stageImage;
+}
+
+function isFordTheatreMatch() {
+  return matchPlayerData.stage === "Ford's Theatre" || matchRivalData.stage === "Ford's Theatre";
+}
+
+function shouldPlayFordFinale(defeated) {
+  return isFordTheatreMatch() && defeated.data.name === "Lincoln";
+}
+
 function rect(f) {
   return { x: f.x - f.w / 2, y: f.y - f.h, w: f.w, h: f.h };
 }
@@ -843,30 +1115,33 @@ function intersects(a, b) {
 }
 
 function getPushBox(f) {
-  if (f.knockdown > 0) return { x: f.x - 46, y: floorY - 34, w: 92, h: 32 };
+  const scale = fighterScale(f);
+  if (f.knockdown > 0) return { x: f.x - 46 * scale, y: floorY - 34 * scale, w: 92 * scale, h: 32 * scale };
   // Airborne pushboxes stay around the fighter's lower body. A full standing
   // column here makes jump-over crossups feel like an invisible wall.
-  if (f.jumping) return { x: f.x - 26, y: f.y - 72, w: 52, h: 68 };
-  const width = f.crouching ? 68 : 72;
-  const height = f.crouching ? 92 : 142;
+  if (f.jumping) return { x: f.x - 26 * scale, y: f.y - 72 * scale, w: 52 * scale, h: 68 * scale };
+  const width = (f.crouching ? 68 : 72) * scale;
+  const height = (f.crouching ? 92 : 142) * scale;
   return { x: f.x - width / 2, y: f.y - height, w: width, h: height };
 }
 
 function getHurtBox(f) {
-  if (f.knockdown > 0) return { x: f.x - 92, y: floorY - 58, w: 184, h: 58 };
-  if (f.jumping) return { x: f.x - 36, y: f.y - 150, w: 72, h: 132 };
-  if (f.crouching) return { x: f.x - 38, y: f.y - 100, w: 76, h: 96 };
-  return { x: f.x - 38, y: f.y - 154, w: 76, h: 150 };
+  const scale = fighterScale(f);
+  if (f.knockdown > 0) return { x: f.x - 92 * scale, y: floorY - 58 * scale, w: 184 * scale, h: 58 * scale };
+  if (f.jumping) return { x: f.x - 36 * scale, y: f.y - 150 * scale, w: 72 * scale, h: 132 * scale };
+  if (f.crouching) return { x: f.x - 38 * scale, y: f.y - 100 * scale, w: 76 * scale, h: 96 * scale };
+  return { x: f.x - 38 * scale, y: f.y - 154 * scale, w: 76 * scale, h: 150 * scale };
 }
 
 function getAttackBox(f, moveDef) {
-  if (!moveDef) return null;
+  if (!moveDef || !moveDef.hitbox) return null;
   const box = moveDef.hitbox;
+  const scale = fighterScale(f);
   return {
-    x: f.dir > 0 ? f.x + box.x : f.x - box.x - box.w,
-    y: f.y + box.y,
-    w: box.w,
-    h: box.h
+    x: f.dir > 0 ? f.x + box.x * scale : f.x - (box.x + box.w) * scale,
+    y: f.y + box.y * scale,
+    w: box.w * scale,
+    h: box.h * scale
   };
 }
 
@@ -973,7 +1248,12 @@ function tuningFrameImageLabel(frame) {
     ["washingtonKnockdownSprites", washingtonKnockdownSprites],
     ["lincolnWalkSprites", lincolnWalkSprites],
     ["lincolnJumpSprites", lincolnJumpSprites],
-    ["lincolnKnockdownSprites", lincolnKnockdownSprites]
+    ["lincolnKnockdownSprites", lincolnKnockdownSprites],
+    ["teddyWalkSprites", teddyWalkSprites],
+    ["teddyBackwalkSprites", teddyBackwalkSprites],
+    ["teddyJumpSprites", teddyJumpSprites],
+    ["teddyKnockdownSprites", teddyKnockdownSprites],
+    ["teddyVictorySprites", teddyVictorySprites]
   ];
   for (const [label, images] of collections) {
     const index = images.indexOf(frame.image);
@@ -998,7 +1278,16 @@ function tuningFrameImageLabel(frame) {
     ["lincolnCrouchKickSprite", lincolnCrouchKickSprite],
     ["lincolnBlockSprite", lincolnBlockSprite],
     ["lincolnCrouchBlockSprite", lincolnCrouchBlockSprite],
-    ["lincolnHitSprite", lincolnHitSprite]
+    ["lincolnHitSprite", lincolnHitSprite],
+    ["teddySprite", teddySprite],
+    ["teddyPunchSprite", teddyPunchSprite],
+    ["teddyKickSprite", teddyKickSprite],
+    ["teddyHitSprite", teddyHitSprite],
+    ["teddyBlockSprite", teddyBlockSprite],
+    ["teddyCrouchSprite", teddyCrouchSprite],
+    ["teddyCrouchPunchSprite", teddyCrouchPunchSprite],
+    ["teddyCrouchKickSprite", teddyCrouchKickSprite],
+    ["teddyCrouchBlockSprite", teddyCrouchBlockSprite]
   ];
   return singles.find(([, image]) => image === frame.image)?.[0] || "image";
 }
@@ -1107,6 +1396,10 @@ function canStartSpecial(f) {
   return canStartMove(f) && f.energy >= damageTuning.specialEnergyCost;
 }
 
+function canStartHatThrow(f) {
+  return f.data.name === "Lincoln" && canStartMove(f) && f.energy >= lincolnHatThrow.energyCost;
+}
+
 function canBlock(f) {
   return canAct(f) && !f.currentMove && !f.jumping && f.specialDashFrames <= 0;
 }
@@ -1156,6 +1449,7 @@ function update() {
   updateMove(player, rival);
   updateMove(rival, player);
   stepCombatEvents();
+  stepFordFinale();
   if (!gameOver) stepProjectiles();
   updateFighterAnimationState(player);
   updateFighterAnimationState(rival);
@@ -1184,6 +1478,14 @@ function update() {
       defeated.vx = 0;
       defeated.vy = 0;
       defeated.jumping = false;
+      if (shouldPlayFordFinale(defeated)) {
+        if (!fordFinale) startFordFinale(defeated);
+        if (!fordFinaleDone()) {
+          pressed.clear();
+          released.clear();
+          return;
+        }
+      }
       finishRound(player.hp > rival.hp ? player : rival);
     }
   }
@@ -1212,10 +1514,10 @@ function updateFighterAnimationState(f) {
   setFighterState(f, nextState);
 
   if (nextState === "walkForward") {
-    const frames = f.data.name === "Lincoln" ? lincolnWalkCycle : washingtonWalkFrames;
+    const frames = usesTeddySprites(f) ? teddyWalkCycle : usesLincolnSprites(f) ? lincolnWalkCycle : washingtonWalkFrames;
     advanceAnimation(f, frames, walkFrameTicks);
   } else if (nextState === "walkBack") {
-    const frames = f.data.name === "Washington" ? washingtonBackwalkCycle : lincolnWalkCycle;
+    const frames = usesTeddySprites(f) ? teddyBackwalkCycle : usesWashingtonSprites(f) ? washingtonBackwalkCycle : lincolnWalkCycle;
     advanceAnimation(f, frames, backwalkFrameTicks);
   }
   f.stateAge += 1;
@@ -1244,6 +1546,7 @@ function controlPlayer() {
   player.jumpBuffer = Math.max(0, player.jumpBuffer - 1);
   if (pressed.has("KeyJ")) startMove(player, player.crouching ? "crouchPunch" : "punch");
   if (pressed.has("KeyK")) startMove(player, player.crouching ? "crouchKick" : "kick");
+  if (pressed.has("KeyI")) startMove(player, "hatThrow");
   if (pressed.has("KeyL")) startSpecial(player, rival);
 }
 
@@ -1331,6 +1634,7 @@ function getAIIntent(ai, opponent, observed, config) {
     scoredAIAction("block", observed.attacking && distance < 176 ? 74 * config.defense * personality.defense * config.blockChance : 0, AI_STATES.DEFEND),
     scoredAIAction("punish", observed.vulnerable && distance < 138 ? 82 * config.punishChance * personality.punish : 0, AI_STATES.PUNISH),
     scoredAIAction("antiAir", observed.jumping && distance < 158 ? (66 + ai.aiHabits.jump * 5) * config.antiAirChance : 0, AI_STATES.ANTI_AIR),
+    scoredAIAction("hatThrow", ai.data.name === "Lincoln" && distance > 155 && distance < 390 && ai.aiSpecialCooldown <= 0 ? 30 * config.specialChance * personality.special : 0, AI_STATES.NEUTRAL),
     scoredAIAction("special", distance > 130 && distance < 330 && ai.aiSpecialCooldown <= 0 ? 34 * config.specialChance * personality.special : 0, AI_STATES.NEUTRAL),
     scoredAIAction("jump", distance > 150 && ai.aiJumpCooldown <= 0 ? 18 * config.jumpChance * personality.jump : 0, AI_STATES.NEUTRAL),
     scoredAIAction("center", centerDistance > 180 && distance > 120 ? 22 * personality.centerBias : 0, AI_STATES.APPROACH)
@@ -1393,6 +1697,10 @@ function applyAIIntent(ai, opponent, intent, config) {
   if (action === "special" && ai.aiSpecialCooldown <= 0 && canStartSpecial(ai)) {
     startSpecial(ai, opponent);
     ai.aiSpecialCooldown = randomInt(180, 300);
+    return;
+  }
+  if (action === "hatThrow" && ai.aiSpecialCooldown <= 0 && startMove(ai, "hatThrow")) {
+    ai.aiSpecialCooldown = randomInt(150, 250);
     return;
   }
   if (action === "antiAir" && Math.random() < config.antiAirChance) {
@@ -1505,6 +1813,8 @@ function moveDuration(def) {
 function startMove(attacker, moveName) {
   const def = moveDefs[moveName];
   if (!def || !canStartMove(attacker)) return false;
+  if (moveName === "hatThrow" && !canStartHatThrow(attacker)) return false;
+  if (moveName === "hatThrow") attacker.energy -= lincolnHatThrow.energyCost;
   attacker.currentMove = moveName;
   attacker.moveAge = 0;
   attacker.hasHitThisMove = false;
@@ -1528,6 +1838,10 @@ function isMoveActive(f) {
 function updateMove(attacker, defender) {
   const def = currentMoveDef(attacker);
   if (!def) return;
+  if (def.projectile === "lincolnHat" && !attacker.hasHitThisMove && attacker.moveAge >= def.startup) {
+    spawnLincolnHatProjectile(attacker);
+    attacker.hasHitThisMove = true;
+  }
   if (isMoveActive(attacker) && !attacker.hasHitThisMove) {
     const attackBox = getAttackBox(attacker, def);
     if (attackBox && intersects(attackBox, getHurtBox(defender))) {
@@ -1551,6 +1865,24 @@ function attackImpactPoint(box, dir) {
     x: Math.round(dir > 0 ? box.x + box.w : box.x),
     y: Math.round(box.y + box.h / 2)
   };
+}
+
+function spawnLincolnHatProjectile(attacker) {
+  const release = lincolnHatThrow.releaseOffset;
+  projectiles.push({
+    kind: "lincolnHat",
+    x: attacker.x + attacker.dir * release.x,
+    y: attacker.y + release.y,
+    vx: attacker.dir * lincolnHatThrow.speed,
+    owner: attacker,
+    color: attacker.data.accent,
+    label: "HAT",
+    damage: lincolnHatThrow.damage,
+    special: false,
+    life: lincolnHatThrow.life,
+    age: 0,
+    hitbox: lincolnHatThrow.hitbox
+  });
 }
 
 function startSpecial(attacker, defender) {
@@ -1660,12 +1992,44 @@ function clearCombatEvents() {
   combatEvents = [];
 }
 
+function startFordFinale(defeated) {
+  fordFinale = {
+    age: 0,
+    duration: 128,
+    shotFrame: 74,
+    defeated
+  };
+  roundText = "SIC SEMPER!";
+  roundTextTimer = 128;
+}
+
+function stepFordFinale() {
+  if (!fordFinale) return;
+  fordFinale.age += 1;
+  if (fordFinale.age === fordFinale.shotFrame) {
+    shake = Math.max(shake, 10);
+    hitSparks.push({
+      x: fordFinale.defeated.x,
+      y: fordFinale.defeated.y - 104,
+      life: 20,
+      label: "BANG",
+      blocked: false
+    });
+  }
+}
+
+function fordFinaleDone() {
+  return fordFinale && fordFinale.age >= fordFinale.duration;
+}
+
 function stepProjectiles() {
   projectiles.forEach((p) => {
+    p.age = (p.age || 0) + 1;
     p.x += p.vx;
     p.life -= 1;
     const target = p.owner === player ? rival : player;
-    if (intersects({ x: p.x - 18, y: p.y - 14, w: 36, h: 28 }, getHurtBox(target))) {
+    const hitbox = p.hitbox || { w: 36, h: 28 };
+    if (intersects({ x: p.x - hitbox.w / 2, y: p.y - hitbox.h / 2, w: hitbox.w, h: hitbox.h }, getHurtBox(target))) {
       damage(target, p.damage, Math.sign(p.vx), p.label, { x: p.x, y: p.y }, { special: p.special });
       p.life = 0;
     }
@@ -1725,11 +2089,13 @@ function draw() {
   const ox = shake ? Math.round((Math.random() - 0.5) * shake) : 0;
   const oy = shake ? Math.round((Math.random() - 0.5) * shake) : 0;
   drawStage();
+  drawFordBackgroundActors();
   drawHud();
   ctx.save();
   ctx.translate(ox, oy);
   projectiles.forEach(drawProjectile);
   drawFighters();
+  drawFordFinale();
   hitSparks.forEach(drawSpark);
   if (debugBoxes) drawDebug();
   if (tuningMode) drawTuningGuides();
@@ -1760,8 +2126,9 @@ function activeHitLayer(attacker, defender) {
 }
 
 function drawStage() {
-  if (imageReady(stageImage)) {
-    ctx.drawImage(stageImage, 0, 0, W, H);
+  const image = activeStageImage();
+  if (imageReady(image)) {
+    ctx.drawImage(image, 0, 0, W, H);
   } else {
     const grad = ctx.createLinearGradient(0, 0, 0, H);
     grad.addColorStop(0, "#101833");
@@ -1770,6 +2137,45 @@ function drawStage() {
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, W, H);
   }
+}
+
+function drawFordBackgroundActors() {
+  if (!isFordTheatreMatch()) return;
+  fordBackgroundActors.forEach(drawFordBackgroundActor);
+}
+
+function drawFordBackgroundActor(actor, index) {
+  const frame = Math.floor((tick + actor.delay) / 36) % 4;
+  const wave = frame === 1 || frame === 2;
+  const bob = frame === 2 ? -2 : frame === 0 ? 1 : 0;
+  const look = Math.floor((tick + actor.delay + index * 17) / 96) % 2 === 0 ? -1 : 1;
+  const s = actor.scale;
+
+  ctx.save();
+  ctx.translate(Math.round(actor.x), Math.round(actor.y + bob));
+  ctx.scale(s, s);
+  ctx.fillStyle = "rgba(0, 0, 0, 0.28)";
+  ctx.fillRect(-14, 35, 28, 6);
+  ctx.fillStyle = actor.palette[0];
+  ctx.fillRect(-8, -32, 16, 12);
+  ctx.fillRect(-10, -20, 20, 30);
+  ctx.fillStyle = actor.palette[1];
+  ctx.fillRect(-6, -23, 12, 10);
+  ctx.fillStyle = "#111018";
+  ctx.fillRect(-11, -37, 22, 5);
+  ctx.fillRect(-7, -45, 14, 10);
+  ctx.fillStyle = actor.palette[2];
+  ctx.fillRect(-12, 8, 9, 28);
+  ctx.fillRect(3, 8, 9, 28);
+  ctx.fillStyle = actor.palette[1];
+  ctx.fillRect(look > 0 ? 7 : -19, -15, 12, 6);
+  ctx.fillRect(wave ? -20 : -16, wave ? -28 : -13, 6, 14);
+  if (actor.role === "stagehand") {
+    ctx.fillStyle = "#b68b44";
+    ctx.fillRect(14, 12, 5, 32);
+    ctx.fillRect(8, 41, 18, 4);
+  }
+  ctx.restore();
 }
 
 function drawHud() {
@@ -1811,12 +2217,16 @@ function drawHealth(x, y, f, flip) {
 }
 
 function drawFighter(f) {
-  if (f.data.name === "Washington" && imageReady(washingtonSprite)) {
+  if (usesWashingtonSprites(f) && imageReady(washingtonSprite)) {
     drawWashingtonSprite(f);
     return;
   }
   if (f.data.name === "Lincoln" && imageReady(lincolnSprite)) {
     drawLincolnSprite(f);
+    return;
+  }
+  if (usesTeddySprites(f) && imageReady(teddySprite)) {
+    drawTeddySprite(f);
     return;
   }
 
@@ -1950,6 +2360,9 @@ function lincolnFrameFor(f) {
   if (f.hitReact > 0 && imageReady(lincolnHitSprite)) {
     return lincolnFrames.hit;
   }
+  if (f.currentMove === "hatThrow" && imageReady(lincolnHatThrowSprite)) {
+    return lincolnHatThrowFrameFor(f);
+  }
   if (f.attack > 6 && f.attackType === "crouch-kick" && imageReady(lincolnCrouchKickSprite)) {
     return lincolnFrames.crouchKick;
   }
@@ -1978,6 +2391,14 @@ function lincolnFrameFor(f) {
     return lincolnFrames.crouch;
   }
   return lincolnFrames.idle;
+}
+
+function lincolnHatThrowFrameFor(f) {
+  const def = moveDefs.hatThrow;
+  if (f.moveAge < Math.floor(def.startup * 0.5)) return lincolnHatThrowFrames[0];
+  if (f.moveAge < def.startup + 5) return lincolnHatThrowFrames[1];
+  if (f.moveAge < def.startup + 34) return lincolnHatThrowFrames[2];
+  return lincolnHatThrowFrames[3];
 }
 
 function lincolnKnockdownFrameFor(f) {
@@ -2028,11 +2449,122 @@ function lincolnJumpFrameFor(f) {
   return lincolnJumpFrames[4];
 }
 
+function drawTeddySprite(f) {
+  const frame = teddyFrameFor(f);
+  const bob = fighterBob(f);
+  const hurtFlash = f.hurt > 0 && f.knockdown === 0 && tick % 4 < 2;
+  const nf = normalizedFrame(frame);
+
+  drawShadow(f, nf.shadowWidth || 82);
+  ctx.save();
+  ctx.translate(Math.round(f.x), Math.round(f.y + bob));
+  ctx.scale(f.dir, 1);
+
+  if (f.block && frame !== teddyFrames.block) {
+    ctx.fillStyle = "rgba(158, 228, 255, 0.28)";
+    ctx.fillRect(-56, -138, 28, 108);
+  }
+
+  ctx.globalAlpha = hurtFlash ? 0.55 : 1;
+  ctx.drawImage(
+    preparedFrameCanvas(frame, nf.displayW, nf.displayH),
+    -Math.round(nf.anchorX * nf.scale) + nf.offsetX,
+    -Math.round(nf.anchorY * nf.scale) - nf.lift
+  );
+  ctx.globalAlpha = 1;
+
+  if (f.special > 0) {
+    ctx.fillStyle = f.data.accent;
+    ctx.fillRect(-44, -182, 10, 10);
+    ctx.fillRect(34, -192, 14, 14);
+    ctx.fillRect(-8, -206, 12, 12);
+  }
+
+  ctx.restore();
+}
+
+function teddyFrameFor(f) {
+  if (tuningMode && tuningTargetFighter() === f && currentTuningGroup().fighter === "T. Roosevelt") return currentTuningFrame();
+  if (f.victory && imagesReady(teddyVictorySprites)) {
+    const frameIndex = Math.min(Math.floor(f.victoryAge / timing.victoryFrameTicks), teddyVictoryFrames.length - 1);
+    return teddyVictoryFrames[frameIndex];
+  }
+  if (f.knockdown > 0 && imagesReady(teddyKnockdownSprites)) {
+    return teddyKnockdownFrameFor(f);
+  }
+  if (f.hitReact > 0 && imageReady(teddyHitSprite)) {
+    return teddyFrames.hit;
+  }
+  if (f.attack > 6 && f.attackType === "crouch-kick" && imageReady(teddyCrouchKickSprite)) {
+    return teddyFrames.crouchKick;
+  }
+  if (f.attack > 6 && f.attackType === "crouch-punch" && imageReady(teddyCrouchPunchSprite)) {
+    return teddyFrames.crouchPunch;
+  }
+  if (f.attack > 6 && f.attackType === "kick" && imageReady(teddyKickSprite)) {
+    return teddyFrames.kick;
+  }
+  if (f.attack > 6 && f.attackType === "punch" && imageReady(teddyPunchSprite)) {
+    return teddyFrames.punch;
+  }
+  if (f.jumping && imagesReady(teddyJumpSprites)) {
+    return teddyJumpFrameFor(f);
+  }
+  if (f.blockType === "crouching" && imageReady(teddyCrouchBlockSprite)) {
+    return teddyFrames.crouchBlock;
+  }
+  if (f.blockType === "standing" && imageReady(teddyBlockSprite)) {
+    return teddyFrames.block;
+  }
+  if (f.crouching && imageReady(teddyCrouchSprite)) {
+    return teddyFrames.crouch;
+  }
+  if (!f.jumping && Math.abs(f.vx) > 0.2 && teddyMoveSpritesReady()) {
+    return teddyWalkFrameFor(f);
+  }
+  return teddyFrames.idle;
+}
+
+function teddyMoveSpritesReady() {
+  return imagesReady(teddyWalkSprites) && imagesReady(teddyBackwalkSprites);
+}
+
+function teddyJumpFrameFor(f) {
+  const air = floorY - f.y;
+  if (f.vy < 0 && air < 36) return teddyJumpFrames[0];
+  if (f.vy < -10) return teddyJumpFrames[1];
+  if (f.vy < -4) return teddyJumpFrames[2];
+  if (f.vy < -0.8) return teddyJumpFrames[3];
+  if (f.vy < 2.8) return teddyJumpFrames[3];
+  if (f.vy < 9) return teddyJumpFrames[4];
+  if (air < 44) return teddyJumpFrames[5];
+  return teddyJumpFrames[4];
+}
+
+function teddyKnockdownFrameFor(f) {
+  if (f.knockdownAge <= knockoutImpactHold && imageReady(teddyHitSprite)) {
+    return teddyFrames.hit;
+  }
+  if (!f.knockdownLanded) {
+    return f.vy < 0 ? teddyKnockdownFrames[0] : teddyKnockdownFrames[1];
+  }
+  const frameIndex = clamp(2 + Math.floor((f.knockdownLanded - 1) / knockdownFrameTicks), 2, teddyKnockdownFrames.length - 1);
+  return teddyKnockdownFrames[frameIndex];
+}
+
+function teddyWalkFrameFor(f) {
+  const movingForward = Math.sign(f.vx) === f.dir;
+  if (movingForward) {
+    return teddyWalkFrames[teddyWalkCycle[f.animFrame % teddyWalkCycle.length]];
+  }
+  return teddyBackwalkFrames[teddyBackwalkCycle[f.animFrame % teddyBackwalkCycle.length]];
+}
+
 function fighterBob(f) {
   if (f.knockdown > 0) return 0;
   if (f.jumping || Math.abs(f.vx) > 0.2) return 0;
   // Washington's detailed sprite art stays planted; avoid synthetic bobbing.
-  if (f.data.name === "Washington") return 0;
+  if (usesWashingtonSprites(f) || usesTeddySprites(f)) return 0;
   return Math.sin(tick / 38) * 0.8;
 }
 
@@ -2049,11 +2581,12 @@ function drawWashingtonSprite(f) {
   const bob = fighterBob(f);
   const hurtFlash = f.hurt > 0 && f.knockdown === 0 && tick % 4 < 2;
   const nf = normalizedFrame(frame);
+  const scale = fighterScale(f);
 
-  drawShadow(f, nf.shadowWidth || 84);
+  drawShadow(f, (nf.shadowWidth || 84) * scale);
   ctx.save();
   ctx.translate(Math.round(f.x), Math.round(f.y + bob));
-  ctx.scale(f.dir, 1);
+  ctx.scale(f.dir * scale, scale);
 
   if (f.block && frame !== washingtonFrames.block && frame !== washingtonFrames.crouchBlock) {
     ctx.fillStyle = "rgba(158, 228, 255, 0.28)";
@@ -2157,11 +2690,97 @@ function washingtonWalkFrameFor(f) {
 }
 
 function drawProjectile(p) {
+  if (p.kind === "lincolnHat" && imageReady(lincolnHatProjectileSprite)) {
+    const size = lincolnHatThrow.frameSize;
+    const frame = Math.floor((p.age || 0) / lincolnHatThrow.frameTicks) % lincolnHatThrow.frames;
+    ctx.save();
+    if (p.vx < 0) {
+      ctx.translate(Math.round(p.x), Math.round(p.y));
+      ctx.scale(-1, 1);
+      ctx.drawImage(lincolnHatProjectileSprite, frame * size, 0, size, size, -size / 2, -size / 2, size, size);
+    } else {
+      ctx.drawImage(lincolnHatProjectileSprite, frame * size, 0, size, size, Math.round(p.x - size / 2), Math.round(p.y - size / 2), size, size);
+    }
+    ctx.restore();
+    return;
+  }
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(p.x - 23, p.y - 18, 46, 36);
   ctx.fillStyle = p.color;
   ctx.fillRect(p.x - 18, p.y - 13, 36, 26);
   pixelText(p.label, p.x - 18, p.y - 4, 1.3, "#11131d");
+}
+
+function drawFordFinale() {
+  if (!fordFinale) return;
+  const progress = clamp(fordFinale.age / fordFinale.duration, 0, 1);
+  const leapProgress = clamp(fordFinale.age / fordFinale.shotFrame, 0, 1);
+  const startX = 688;
+  const startY = 270;
+  const endX = clamp(fordFinale.defeated.x + 92, 610, 830);
+  const endY = floorY - 62;
+  const arc = Math.sin(leapProgress * Math.PI) * 76;
+  const x = lerp(startX, endX, easeOutQuad(leapProgress));
+  const y = lerp(startY, endY, easeOutQuad(leapProgress)) - arc;
+  const dir = x > fordFinale.defeated.x ? -1 : 1;
+
+  ctx.save();
+  ctx.translate(Math.round(x), Math.round(y));
+  ctx.scale(dir, 1);
+  drawBoothActor(progress);
+  ctx.restore();
+
+  if (fordFinale.age >= fordFinale.shotFrame - 3 && fordFinale.age <= fordFinale.shotFrame + 5) {
+    drawMuzzleFlash(x - dir * 25, y - 42, dir);
+  }
+}
+
+function drawBoothActor(progress) {
+  const crouch = progress > 0.58 ? Math.min((progress - 0.58) / 0.18, 1) : 0;
+  const bodyY = Math.round(crouch * 10);
+
+  ctx.fillStyle = "rgba(0, 0, 0, 0.34)";
+  ctx.fillRect(-19, 59, 38, 8);
+  ctx.fillStyle = "#101015";
+  ctx.fillRect(-10, -58 + bodyY, 20, 16);
+  ctx.fillRect(-14, -44 + bodyY, 28, 42);
+  ctx.fillStyle = "#e2b88b";
+  ctx.fillRect(-7, -46 + bodyY, 14, 13);
+  ctx.fillStyle = "#08080c";
+  ctx.fillRect(-18, -64 + bodyY, 36, 6);
+  ctx.fillRect(-11, -74 + bodyY, 22, 12);
+  ctx.fillStyle = "#2b2020";
+  ctx.fillRect(-20, -28 + bodyY, 12, 35);
+  ctx.fillRect(8, -28 + bodyY, 12, 35);
+  ctx.fillStyle = "#09090d";
+  ctx.fillRect(-20, 4, 11, 50);
+  ctx.fillRect(9, 4, 11, 50);
+  ctx.fillStyle = "#e2b88b";
+  ctx.fillRect(-36, -32 + bodyY, 20, 7);
+  ctx.fillStyle = "#1a1717";
+  ctx.fillRect(-48, -34 + bodyY, 16, 5);
+  ctx.fillRect(-53, -36 + bodyY, 7, 3);
+}
+
+function drawMuzzleFlash(x, y, dir) {
+  ctx.save();
+  ctx.translate(Math.round(x), Math.round(y));
+  ctx.scale(dir, 1);
+  ctx.fillStyle = "#fff4b8";
+  ctx.fillRect(-30, -4, 24, 8);
+  ctx.fillStyle = "#f29b38";
+  ctx.fillRect(-22, -10, 13, 20);
+  ctx.fillStyle = "#ca3341";
+  ctx.fillRect(-14, -6, 9, 12);
+  ctx.restore();
+}
+
+function easeOutQuad(t) {
+  return 1 - (1 - t) * (1 - t);
+}
+
+function lerp(a, b, t) {
+  return a + (b - a) * t;
 }
 
 function drawSpark(s) {
@@ -2416,7 +3035,7 @@ function koSlowMotionActive() {
 
 const handledKeys = [
   "Space", "Enter", "ShiftLeft", "ShiftRight", "ControlLeft", "ControlRight", "AltLeft", "AltRight",
-  "KeyW", "KeyA", "KeyS", "KeyD", "KeyJ", "KeyK", "KeyL", "KeyH", "KeyR", "KeyG", "KeyC", "KeyV",
+  "KeyW", "KeyA", "KeyS", "KeyD", "KeyJ", "KeyK", "KeyI", "KeyL", "KeyH", "KeyR", "KeyG", "KeyC", "KeyV",
   "Digit1", "Digit2", "BracketLeft", "BracketRight", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"
 ];
 

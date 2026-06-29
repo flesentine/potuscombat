@@ -11,6 +11,7 @@ Controls:
 - `WASD` move
 - `J` punch
 - `K` kick
+- `I` Lincoln hat throw
 - `L` special
 - `Space` block
 - `Enter` start
