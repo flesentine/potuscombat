@@ -78,10 +78,6 @@ const AI_PERSONALITY = {
     aggression: 0.94, defense: 1.18, punish: 1.2, jump: 0.42, special: 0.7,
     preferredRange: 112, centerBias: 1.28, poke: "crouchKick"
   },
-  "John Adams": {
-    aggression: 0.86, defense: 1.24, punish: 1.08, jump: 0.46, special: 1.18,
-    preferredRange: 132, centerBias: 1.16, poke: "crouchKick"
-  },
   "T. Roosevelt": {
     aggression: 1.1, defense: 0.96, punish: 1.06, jump: 0.72, special: 1.25,
     preferredRange: 94, centerBias: 1.04, poke: "crouchKick"
@@ -114,8 +110,8 @@ const lincolnHatThrow = {
   speed: 8.2,
   damage: 11,
   life: 82,
-  hitbox: { w: 44, h: 34 },
-  releaseOffset: { x: 160, y: -196 }
+  hitbox: { w: 58, h: 78 },
+  releaseOffset: { x: 96, y: -142 }
 };
 const floorY = physics.floorY;
 const playerSpeed = physics.playerSpeed;
@@ -143,7 +139,21 @@ const released = new Set();
 const stageImage = new Image();
 stageImage.src = "assets/presidential-stage-16bit.png";
 const fordTheatreStageImage = new Image();
-fordTheatreStageImage.src = "assets/fords-theatre-stage-16bit.png";
+fordTheatreStageImage.src = "assets/fords-theatre-stage-16bit.png?v=20260629c";
+const asaTrenchardPlaySprite = new Image();
+asaTrenchardPlaySprite.src = "assets/asa-trenchard-play-sheet.png?v=20260629c";
+const mrsMountchessingtonPlaySprite = new Image();
+mrsMountchessingtonPlaySprite.src = "assets/mrs-mountchessington-play-sheet.png?v=20260629c";
+const augustaPlaySprite = new Image();
+augustaPlaySprite.src = "assets/augusta-play-sheet.png?v=20260629c";
+const florencePlaySprite = new Image();
+florencePlaySprite.src = "assets/florence-play-sheet.png?v=20260629b";
+const johnWilkesBoothFinaleSprite = new Image();
+johnWilkesBoothFinaleSprite.src = "assets/john-wilkes-booth-finale-sheet.png?v=20260630d";
+const fordAudienceSprite = new Image();
+fordAudienceSprite.src = "assets/fords-audience-foreground.png?v=20260630a";
+const bloodPoolSprite = new Image();
+bloodPoolSprite.src = "assets/blood-pool-frames.png?v=20260701a";
 const impactSparkSprite = new Image();
 impactSparkSprite.src = "assets/impact-spark.png";
 const lincolnSprite = new Image();
@@ -319,7 +329,7 @@ const criticalImages = [
   ...teddyKnockdownSprites,
   ...teddyVictorySprites
 ];
-const optionalImages = [stageImage, fordTheatreStageImage, impactSparkSprite];
+const optionalImages = [stageImage, fordTheatreStageImage, asaTrenchardPlaySprite, mrsMountchessingtonPlaySprite, augustaPlaySprite, florencePlaySprite, johnWilkesBoothFinaleSprite, fordAudienceSprite, bloodPoolSprite, impactSparkSprite];
 const allImages = [...criticalImages, ...optionalImages];
 
 allImages.forEach((image) => {
@@ -398,7 +408,7 @@ const washingtonFrames = {
 const washingtonWalkFrames = [
   { image: washingtonWalkSprites[0], crop: { x: 0, y: 125, w: 362, h: 510 }, height: 238, offsetX: -2 },
   { image: washingtonWalkSprites[1], crop: { x: 0, y: 125, w: 362, h: 510 }, height: 238, offsetX: 0 },
-  { image: washingtonWalkSprites[2], crop: { x: 0, y: 125, w: 362, h: 510 }, height: 238, offsetX: 1 },
+  { image: washingtonWalkSprites[2], crop: { x: 0, y: 125, w: 309, h: 510 }, height: 238, offsetX: -11 },
   { image: washingtonWalkSprites[3], crop: { x: 0, y: 125, w: 362, h: 510 }, height: 238, offsetX: 0 },
   { image: washingtonWalkSprites[4], crop: { x: 0, y: 125, w: 330, h: 510 }, height: 238, offsetX: -3 }
 ];
@@ -731,19 +741,6 @@ const presidents = [
     line: "Cross the Delaware!"
   },
   {
-    name: "John Adams",
-    short: "ADAMS",
-    move: "Federalist Volley",
-    stage: "Peacefield Parlor",
-    colors: ["#23345c", "#eadfc2", "#c79a62"],
-    accent: "#f0c15a",
-    special: "cannon",
-    line: "Independence holds!",
-    spriteBase: "Washington",
-    // Washington was about 6'2"; Adams was about 5'7".
-    spriteScale: 67 / 74
-  },
-  {
     name: "Lincoln",
     short: "LINC",
     move: "Railsplitter Uppercut",
@@ -824,10 +821,11 @@ let aiDifficulty = "normal";
 let debugBoxes = false;
 let assetsReady = false;
 const fordBackgroundActors = [
-  { x: 336, y: 352, scale: 1.18, delay: 0, role: "asa", dir: 1 },
-  { x: 428, y: 351, scale: 1.12, delay: 20, role: "mountchessington", dir: -1 },
-  { x: 492, y: 351, scale: 1.08, delay: 42, role: "augusta", dir: -1 },
-  { x: 642, y: 351, scale: 1.08, delay: 66, role: "florence", dir: -1 }
+  { x: 340, y: 274, scale: 1.08, delay: 0, role: "asa", dir: 1 },
+  { x: 476, y: 280, scale: 1.08, delay: 20, role: "mountchessington", dir: 1 },
+  { x: 566, y: 280, scale: 1.08, delay: 42, role: "augusta", dir: 1 },
+  { x: 650, y: 252, scale: 1.16, delay: 88, role: "booth", dir: 1 },
+  { x: 720, y: 280, scale: 1.08, delay: 66, role: "florence", dir: 1 }
 ];
 // Hit pause freezes combat simulation for a few frames after impact. KO slow
 // motion is different: it lets the simulation continue, just at a lower rate.
@@ -1103,7 +1101,10 @@ function isFordTheatreMatch() {
 }
 
 function shouldPlayFordFinale(defeated) {
-  return isFordTheatreMatch() && defeated.data.name === "Lincoln";
+  if (!isFordTheatreMatch() || defeated.data.name !== "Lincoln") return false;
+  const winner = defeated === player ? rival : player;
+  const nextWins = (winner === player ? playerRoundWins : rivalRoundWins) + 1;
+  return nextWins >= roundsToWin;
 }
 
 function rect(f) {
@@ -1465,9 +1466,21 @@ function update() {
     defeated.attack = 0;
     defeated.attackType = "";
     defeated.currentMove = null;
-    startKnockdown(defeated, defeated === player ? rival.dir : player.dir);
-    roundText = "K.O.";
-    roundTextTimer = 999;
+    if (shouldPlayFordFinale(defeated)) {
+      defeated.knockdown = 1;
+      defeated.knockdownAge = 0;
+      defeated.knockdownLanded = 0;
+      defeated.knockdownDir = defeated === player ? rival.dir : player.dir;
+      defeated.y = floorY;
+      defeated.vx = 0;
+      defeated.vy = 0;
+      defeated.jumping = false;
+      defeated.crouching = false;
+    } else {
+      startKnockdown(defeated, defeated === player ? rival.dir : player.dir);
+      roundText = "K.O.";
+      roundTextTimer = 999;
+    }
   }
 
   if (gameOver && (player.hp <= 0 || rival.hp <= 0)) {
@@ -1993,20 +2006,30 @@ function clearCombatEvents() {
 }
 
 function startFordFinale(defeated) {
+  const stageBooth = fordBackgroundActors.find((actor) => actor.role === "booth");
+  const landingX = clamp(defeated.x + 188, 650, W - 150);
   fordFinale = {
     age: 0,
-    duration: 128,
-    shotFrame: 74,
+    duration: 366,
+    landFrame: 82,
+    standFrame: 155,
+    shotFrame: 217,
+    fallFrame: 259,
+    startX: stageBooth?.x ?? 650,
+    startY: stageBooth?.y ?? 280,
+    startScale: stageBooth?.scale ?? 1,
+    landingX,
+    landingY: floorY - 58,
     defeated
   };
   roundText = "SIC SEMPER!";
-  roundTextTimer = 128;
+  roundTextTimer = 366;
 }
 
 function stepFordFinale() {
   if (!fordFinale) return;
   fordFinale.age += 1;
-  if (fordFinale.age === fordFinale.shotFrame) {
+  if (fordFinale.age === (fordFinale.fallFrame ?? fordFinale.shotFrame + 1)) {
     shake = Math.max(shake, 10);
     hitSparks.push({
       x: fordFinale.defeated.x,
@@ -2015,6 +2038,12 @@ function stepFordFinale() {
       label: "BANG",
       blocked: false
     });
+  }
+  if (fordFinale.age === (fordFinale.fallFrame ?? fordFinale.shotFrame + 1)) {
+    const attacker = fordFinale.defeated === player ? rival : player;
+    startKnockdown(fordFinale.defeated, attacker.dir);
+    fordFinale.defeated.vy = 2;
+    fordFinale.defeated.knockdownAge = knockoutImpactHold + 1;
   }
 }
 
@@ -2094,12 +2123,14 @@ function draw() {
   ctx.save();
   ctx.translate(ox, oy);
   projectiles.forEach(drawProjectile);
+  drawFordBloodPool();
   drawFighters();
-  drawFordFinale();
   hitSparks.forEach(drawSpark);
   if (debugBoxes) drawDebug();
   if (tuningMode) drawTuningGuides();
   ctx.restore();
+  drawFordFinale();
+  drawFordAudienceSilhouettes();
   if (!assetsReady) pixelText("LOADING ART", W - 228, H - 30, 1.7, "#f5d66f", "#17131b");
   if (tuningMode) drawTuningOverlay();
   if (roundTextTimer > 0) drawRoundText();
@@ -2139,25 +2170,129 @@ function drawStage() {
   }
 }
 
+function drawFordAudienceSilhouettes() {
+  if (!isFordTheatreMatch()) return;
+  if (imageReady(fordAudienceSprite)) {
+    ctx.save();
+    ctx.globalAlpha = 0.96;
+    ctx.drawImage(fordAudienceSprite, 0, 526, 2172, 198, 0, H - 88, W, 88);
+    ctx.fillStyle = "rgba(0, 0, 0, 0.18)";
+    ctx.fillRect(0, H - 22, W, 22);
+    ctx.restore();
+    return;
+  }
+  const heads = [
+    { x: 24, y: 512, w: 31, h: 22, shoulder: 46, color: "#06070b" },
+    { x: 70, y: 504, w: 28, h: 24, shoulder: 44, color: "#0a0910" },
+    { x: 113, y: 514, w: 33, h: 20, shoulder: 50, color: "#05060a" },
+    { x: 166, y: 506, w: 30, h: 25, shoulder: 46, color: "#0b0a11" },
+    { x: 215, y: 515, w: 36, h: 21, shoulder: 54, color: "#05050a" },
+    { x: 274, y: 507, w: 27, h: 24, shoulder: 43, color: "#090810" },
+    { x: 322, y: 512, w: 32, h: 22, shoulder: 48, color: "#05060b" },
+    { x: 374, y: 503, w: 30, h: 26, shoulder: 46, color: "#090911" },
+    { x: 425, y: 514, w: 35, h: 20, shoulder: 52, color: "#05050a" },
+    { x: 482, y: 506, w: 29, h: 24, shoulder: 45, color: "#0a0910" },
+    { x: 532, y: 513, w: 34, h: 21, shoulder: 51, color: "#05060b" },
+    { x: 588, y: 505, w: 28, h: 25, shoulder: 44, color: "#090810" },
+    { x: 636, y: 515, w: 36, h: 20, shoulder: 54, color: "#05050a" },
+    { x: 696, y: 507, w: 30, h: 24, shoulder: 46, color: "#0b0a11" },
+    { x: 746, y: 512, w: 33, h: 22, shoulder: 49, color: "#05060b" },
+    { x: 801, y: 504, w: 27, h: 25, shoulder: 42, color: "#090810" },
+    { x: 846, y: 514, w: 34, h: 21, shoulder: 51, color: "#05050a" },
+    { x: 905, y: 506, w: 31, h: 24, shoulder: 48, color: "#0a0910" }
+  ];
+
+  ctx.save();
+  ctx.fillStyle = "rgba(0, 0, 0, 0.28)";
+  ctx.fillRect(0, H - 32, W, 32);
+  heads.forEach((head) => {
+    const headX = Math.round(head.x - head.w / 2);
+    const shoulderX = Math.round(head.x - head.shoulder / 2);
+    ctx.fillStyle = head.color;
+    ctx.fillRect(shoulderX, H - 20, head.shoulder, 20);
+    ctx.fillRect(headX, head.y, head.w, H - head.y);
+    ctx.fillRect(headX + 4, head.y - 7, head.w - 8, 8);
+    ctx.fillRect(headX + 8, head.y - 11, head.w - 16, 5);
+  });
+  ctx.fillStyle = "rgba(24, 14, 18, 0.72)";
+  ctx.fillRect(0, H - 5, W, 5);
+  ctx.restore();
+}
+
 function drawFordBackgroundActors() {
   if (!isFordTheatreMatch()) return;
-  fordBackgroundActors.forEach(drawFordBackgroundActor);
+  fordBackgroundActors.forEach((actor) => {
+    if (actor.role === "booth" && fordFinale) return;
+    drawFordBackgroundActor(actor);
+  });
 }
 
 function drawFordBackgroundActor(actor) {
-  const frame = Math.floor((tick + actor.delay) / 34) % 4;
-  const bob = frame === 2 ? -2 : frame === 0 ? 1 : 0;
+  const baseFrame = Math.floor((tick + actor.delay) / 34) % 4;
+  const frame = backgroundActorFrame(actor, baseFrame);
+  const lockedStageActor = actor.role === "asa" || actor.role === "mountchessington" || actor.role === "augusta" || actor.role === "florence" || actor.role === "booth";
+  const bob = lockedStageActor ? 0 : baseFrame === 2 ? -2 : baseFrame === 0 ? 1 : 0;
   const s = actor.scale;
 
   ctx.save();
   ctx.translate(Math.round(actor.x), Math.round(actor.y + bob));
   ctx.scale(actor.dir || 1, 1);
   ctx.scale(s, s);
-  if (actor.role === "asa") drawAsaTrenchard(frame);
-  if (actor.role === "mountchessington") drawMrsMountchessington(frame);
-  if (actor.role === "augusta") drawAugusta(frame);
-  if (actor.role === "florence") drawFlorence(frame);
+  if (actor.role === "asa") {
+    if (imageReady(asaTrenchardPlaySprite)) drawAsaTrenchardSprite(frame);
+    else drawAsaTrenchard(frame);
+  }
+  if (actor.role === "mountchessington") {
+    if (imageReady(mrsMountchessingtonPlaySprite)) drawMrsMountchessingtonSprite(frame);
+    else drawMrsMountchessington(frame);
+  }
+  if (actor.role === "augusta") {
+    if (imageReady(augustaPlaySprite)) drawAugustaSprite(frame);
+    else drawAugusta(frame);
+  }
+  if (actor.role === "florence") {
+    if (imageReady(florencePlaySprite)) drawFlorenceSprite(frame);
+    else drawFlorence(frame);
+  }
+  if (actor.role === "booth") {
+    if (imageReady(johnWilkesBoothFinaleSprite)) drawBoothFinaleSprite(frame % 2, 138, 58);
+    else drawBoothActor(frame % 2);
+  }
   ctx.restore();
+}
+
+function backgroundActorFrame(actor, baseFrame) {
+  if (actor.role === "asa") return asaTrenchardStageFrame(actor.delay);
+  if (actor.role === "mountchessington") return mrsMountchessingtonStageFrame(actor.delay);
+  if (actor.role === "augusta") return augustaStageFrame(actor.delay);
+  if (actor.role === "florence") return florenceStageFrame(actor.delay);
+  if (actor.role === "booth") return boothStageFrame(actor.delay);
+  return baseFrame;
+}
+
+function asaTrenchardStageFrame(delay) {
+  const sequence = [0, 0, 0, 1, 1, 0, 3, 3, 0, 0];
+  return sequence[Math.floor((tick + delay) / 58) % sequence.length];
+}
+
+function mrsMountchessingtonStageFrame(delay) {
+  const sequence = [0, 0, 1, 1, 0, 3, 3, 0, 2, 0, 0, 3];
+  return sequence[Math.floor((tick + delay) / 64) % sequence.length];
+}
+
+function augustaStageFrame(delay) {
+  const sequence = [0, 0, 1, 1, 0, 2, 0, 0];
+  return sequence[Math.floor((tick + delay) / 68) % sequence.length];
+}
+
+function florenceStageFrame(delay) {
+  const sequence = [0, 0, 1, 1, 0, 2, 2, 0, 3, 0, 0];
+  return sequence[Math.floor((tick + delay) / 70) % sequence.length];
+}
+
+function boothStageFrame(delay) {
+  const sequence = [0, 0, 1, 1, 0, 0, 1, 0];
+  return sequence[Math.floor((tick + delay) / 64) % sequence.length];
 }
 
 function drawStageActorShadow(w, y = 35) {
@@ -2186,6 +2321,31 @@ function drawAsaTrenchard(frame) {
   ctx.fillRect(28, -25, 5, 6);
 }
 
+function drawAsaTrenchardSprite(frame) {
+  const crops = [
+    { x: 78, y: 76, w: 324, h: 650, footAnchor: 0.295 },
+    { x: 535, y: 82, w: 426, h: 644, footAnchor: 0.174 },
+    { x: 1008, y: 82, w: 530, h: 644, footAnchor: 0.251 },
+    { x: 1584, y: 78, w: 320, h: 648, footAnchor: 0.145 }
+  ];
+  const crop = crops[frame % crops.length];
+  const displayH = 150;
+  const displayW = Math.round((crop.w / crop.h) * displayH);
+  const footY = 42;
+
+  ctx.drawImage(
+    asaTrenchardPlaySprite,
+    crop.x,
+    crop.y,
+    crop.w,
+    crop.h,
+    -Math.round(displayW * crop.footAnchor),
+    footY - displayH,
+    displayW,
+    displayH
+  );
+}
+
 function drawMrsMountchessington(frame) {
   const fanOpen = frame !== 0;
   drawStageActorShadow(36);
@@ -2204,6 +2364,31 @@ function drawMrsMountchessington(frame) {
   ctx.fillRect(23, fanOpen ? -28 : -19, fanOpen ? 18 : 8, fanOpen ? 16 : 9);
   ctx.fillStyle = "#7d3c55";
   ctx.fillRect(25, fanOpen ? -25 : -18, fanOpen ? 12 : 5, fanOpen ? 3 : 7);
+}
+
+function drawMrsMountchessingtonSprite(frame) {
+  const crops = [
+    { x: 0, y: 0, w: 495, h: 793, hemAnchor: 0.563 },
+    { x: 495, y: 0, w: 495, h: 793, hemAnchor: 0.47 },
+    { x: 990, y: 0, w: 495, h: 793, hemAnchor: 0.519 },
+    { x: 1485, y: 0, w: 498, h: 793, hemAnchor: 0.446 }
+  ];
+  const crop = crops[frame % crops.length];
+  const displayH = 150;
+  const displayW = Math.round((crop.w / crop.h) * displayH);
+  const hemY = 38;
+
+  ctx.drawImage(
+    mrsMountchessingtonPlaySprite,
+    crop.x,
+    crop.y,
+    crop.w,
+    crop.h,
+    -Math.round(displayW * crop.hemAnchor),
+    hemY - displayH,
+    displayW,
+    displayH
+  );
 }
 
 function drawAugusta(frame) {
@@ -2225,6 +2410,56 @@ function drawAugusta(frame) {
   ctx.fillRect(flounce ? 25 : 21, flounce ? -37 : -21, 5, 11);
   ctx.fillStyle = "#eadfc2";
   ctx.fillRect(flounce ? 28 : 23, flounce ? -39 : -23, 9, 5);
+}
+
+function drawAugustaSprite(frame) {
+  const crops = [
+    { x: 0, y: 0, w: 495, h: 793, hemAnchor: 0.549 },
+    { x: 495, y: 0, w: 495, h: 793, hemAnchor: 0.44 },
+    { x: 990, y: 0, w: 495, h: 793, hemAnchor: 0.433 },
+    { x: 1485, y: 0, w: 498, h: 793, hemAnchor: 0.393 }
+  ];
+  const crop = crops[frame % crops.length];
+  const displayH = 150;
+  const displayW = Math.round((crop.w / crop.h) * displayH);
+  const hemY = 38;
+
+  ctx.drawImage(
+    augustaPlaySprite,
+    crop.x,
+    crop.y,
+    crop.w,
+    crop.h,
+    -Math.round(displayW * crop.hemAnchor),
+    hemY - displayH,
+    displayW,
+    displayH
+  );
+}
+
+function drawFlorenceSprite(frame) {
+  const crops = [
+    { x: 193, y: 150, w: 234, h: 563, hemAnchor: 0.455 },
+    { x: 584, y: 158, w: 250, h: 555, hemAnchor: 0.492 },
+    { x: 1003, y: 151, w: 255, h: 562, hemAnchor: 0.502 },
+    { x: 1449, y: 149, w: 239, h: 564, hemAnchor: 0.465 }
+  ];
+  const crop = crops[frame % crops.length];
+  const displayH = 142;
+  const displayW = Math.round((crop.w / crop.h) * displayH);
+  const hemY = 38;
+
+  ctx.drawImage(
+    florencePlaySprite,
+    crop.x,
+    crop.y,
+    crop.w,
+    crop.h,
+    -Math.round(displayW * crop.hemAnchor),
+    hemY - displayH,
+    displayW,
+    displayH
+  );
 }
 
 function drawFlorence(frame) {
@@ -2394,7 +2629,7 @@ function drawLincolnSprite(f) {
 
   ctx.restore();
 
-  if (f.knockdown > 0 && imageReady(lincolnHatSprite)) {
+  if (f.knockdown > 0 && imageReady(lincolnHatSprite) && !isFordFinaleVictim(f)) {
     drawLincolnHat(f, hurtFlash);
   }
 }
@@ -2424,6 +2659,7 @@ function preparedFrameCanvas(frame, displayW, displayH) {
 
 function lincolnFrameFor(f) {
   if (tuningMode && tuningTargetFighter() === f && currentTuningGroup().fighter === "Lincoln") return currentTuningFrame();
+  if (isFordFinaleVictim(f)) return lincolnFrames.idle;
   if (f.knockdown > 0 && imagesReady(lincolnKnockdownSprites)) {
     return lincolnKnockdownFrameFor(f);
   }
@@ -2461,6 +2697,10 @@ function lincolnFrameFor(f) {
     return lincolnFrames.crouch;
   }
   return lincolnFrames.idle;
+}
+
+function isFordFinaleVictim(f) {
+  return Boolean(fordFinale && fordFinale.age < (fordFinale.fallFrame ?? fordFinale.shotFrame) && fordFinale.defeated === f && f.data.name === "Lincoln");
 }
 
 function lincolnHatThrowFrameFor(f) {
@@ -2781,31 +3021,93 @@ function drawProjectile(p) {
   pixelText(p.label, p.x - 18, p.y - 4, 1.3, "#11131d");
 }
 
+function drawFordBloodPool() {
+  if (!fordFinale || fordFinale.defeated?.data.name !== "Lincoln") return;
+  const victim = fordFinale.defeated;
+  const bloodDelayAfterLanding = 32;
+  const bloodAge = victim.knockdownLanded - bloodDelayAfterLanding;
+  if (bloodAge <= 0) return;
+  const frame = clamp(Math.floor((bloodAge - 1) / 10), 0, 4);
+  const headDir = victim.dir || 1;
+  const x = Math.round(victim.x - headDir * 128);
+  const y = floorY + 8;
+
+  if (imageReady(bloodPoolSprite)) {
+    const cellW = 180;
+    const cellH = 64;
+    const displayW = 142;
+    const displayH = 50;
+    ctx.save();
+    ctx.globalAlpha = 0.97;
+    ctx.drawImage(
+      bloodPoolSprite,
+      frame * cellW,
+      0,
+      cellW,
+      cellH,
+      x - Math.round(displayW / 2),
+      y - displayH,
+      displayW,
+      displayH
+    );
+    ctx.restore();
+    return;
+  }
+
+  ctx.save();
+  ctx.fillStyle = "rgba(84, 0, 10, 0.82)";
+  ctx.fillRect(x - 18 - frame * 9, y - 8, 36 + frame * 18, 8 + frame * 2);
+  ctx.fillStyle = "rgba(142, 8, 17, 0.74)";
+  ctx.fillRect(x - 10 - frame * 7, y - 12, 20 + frame * 14, 7);
+  ctx.restore();
+}
+
 function drawFordFinale() {
   if (!fordFinale) return;
-  const progress = clamp(fordFinale.age / fordFinale.duration, 0, 1);
-  const leapProgress = clamp(fordFinale.age / fordFinale.shotFrame, 0, 1);
-  const startX = 688;
-  const startY = 270;
-  const endX = clamp(fordFinale.defeated.x + 92, 610, 830);
-  const endY = floorY - 62;
+  const actingFrames = 22;
+  const landFrame = fordFinale.landFrame ?? fordFinale.shotFrame - 16;
+  const leapProgress = clamp((fordFinale.age - actingFrames) / (landFrame - actingFrames), 0, 1);
+  const startX = fordFinale.startX ?? 650;
+  const startY = fordFinale.startY ?? 280;
+  const endX = fordFinale.landingX ?? clamp(fordFinale.defeated.x + 188, 650, W - 150);
+  const endY = fordFinale.landingY ?? floorY - 58;
   const arc = Math.sin(leapProgress * Math.PI) * 76;
   const x = lerp(startX, endX, easeOutQuad(leapProgress));
   const y = lerp(startY, endY, easeOutQuad(leapProgress)) - arc;
-  const dir = x > fordFinale.defeated.x ? -1 : 1;
+  const stageDisplayH = Math.round(138 * (fordFinale.startScale ?? 1));
+  const displayH = Math.round(lerp(stageDisplayH, 250, easeOutQuad(leapProgress)));
+  const finaleFrame = boothFinaleFrame();
+  const boothDisplayH = finaleFrame === 2 ? Math.round(displayH * 0.86) : finaleFrame === 3 ? 150 : displayH;
+  const dir = finaleFrame === 2 ? -1 : 1;
 
   ctx.save();
   ctx.translate(Math.round(x), Math.round(y));
   ctx.scale(dir, 1);
-  drawBoothActor(progress);
+  drawBoothActor(finaleFrame, boothDisplayH);
   ctx.restore();
 
-  if (fordFinale.age >= fordFinale.shotFrame - 3 && fordFinale.age <= fordFinale.shotFrame + 5) {
-    drawMuzzleFlash(x - dir * 25, y - 42, dir);
+  if (!imageReady(johnWilkesBoothFinaleSprite) && fordFinale.age >= fordFinale.shotFrame - 3 && fordFinale.age <= fordFinale.shotFrame + 5) {
+    drawMuzzleFlash(x - dir * Math.round(boothDisplayH * 0.43), y - Math.round(boothDisplayH * 0.31), dir);
   }
 }
 
-function drawBoothActor(progress) {
+function boothFinaleFrame() {
+  if (!fordFinale) return 0;
+  if (fordFinale.age < 11) return 0;
+  if (fordFinale.age < 22) return 1;
+  if (fordFinale.age < (fordFinale.landFrame ?? fordFinale.shotFrame - 16)) return 2;
+  if (fordFinale.age < (fordFinale.standFrame ?? fordFinale.shotFrame - 14)) return 3;
+  if (fordFinale.age < fordFinale.shotFrame) return 4;
+  if (fordFinale.age < fordFinale.shotFrame + 14) return 5;
+  return 4;
+}
+
+function drawBoothActor(frame, displayH = null) {
+  if (imageReady(johnWilkesBoothFinaleSprite)) {
+    drawBoothFinaleSprite(frame, displayH);
+    return;
+  }
+  const progress = fordFinale ? clamp(fordFinale.age / fordFinale.duration, 0, 1) : 0;
   const crouch = progress > 0.58 ? Math.min((progress - 0.58) / 0.18, 1) : 0;
   const bodyY = Math.round(crouch * 10);
 
@@ -2830,6 +3132,32 @@ function drawBoothActor(progress) {
   ctx.fillStyle = "#1a1717";
   ctx.fillRect(-48, -34 + bodyY, 16, 5);
   ctx.fillRect(-53, -36 + bodyY, 7, 3);
+}
+
+function drawBoothFinaleSprite(frame, displayHOverride = null, footY = 58) {
+  const crops = [
+    { x: 22, y: 127, w: 316, h: 483, footAnchor: 0.618 },
+    { x: 424, y: 124, w: 236, h: 486, footAnchor: 0.451 },
+    { x: 689, y: 114, w: 320, h: 378, footAnchor: 0.199 },
+    { x: 1059, y: 305, w: 274, h: 303, footAnchor: 0.58 },
+    { x: 1357, y: 167, w: 388, h: 445, footAnchor: 0.589 },
+    { x: 1751, y: 167, w: 386, h: 446, footAnchor: 0.586 }
+  ];
+  const crop = crops[frame % crops.length];
+  const displayH = displayHOverride ?? (frame === 3 ? 118 : frame === 4 ? 116 : 138);
+  const displayW = Math.round((crop.w / crop.h) * displayH);
+
+  ctx.drawImage(
+    johnWilkesBoothFinaleSprite,
+    crop.x,
+    crop.y,
+    crop.w,
+    crop.h,
+    -Math.round(displayW * crop.footAnchor),
+    footY - displayH,
+    displayW,
+    displayH
+  );
 }
 
 function drawMuzzleFlash(x, y, dir) {
