@@ -154,6 +154,8 @@ const fordAudienceSprite = new Image();
 fordAudienceSprite.src = "assets/fords-audience-foreground.png?v=20260630a";
 const bloodPoolSprite = new Image();
 bloodPoolSprite.src = "assets/blood-pool-frames.png?v=20260701a";
+const fighterShadowSprite = new Image();
+fighterShadowSprite.src = "assets/fighter-shadow.png?v=20260701a";
 const impactSparkSprite = new Image();
 impactSparkSprite.src = "assets/impact-spark.png";
 const lincolnSprite = new Image();
@@ -179,7 +181,7 @@ lincolnHatSprite.src = "assets/lincoln-hat-game.png";
 const lincolnHatProjectileSprite = new Image();
 lincolnHatProjectileSprite.src = "assets/lincoln-hat-projectile-sheet.png";
 const lincolnHatThrowSprite = new Image();
-lincolnHatThrowSprite.src = "assets/lincoln-hat-throw-sheet-game.png?v=7";
+lincolnHatThrowSprite.src = "assets/lincoln-hat-throw-sheet-game-nohat.png?v=20260701a";
 const lincolnKnockdownSprites = [1, 2, 3, 4, 5].map((frame) => {
   const image = new Image();
   image.src = `assets/lincoln-knockdown-${frame}-game.png`;
@@ -240,6 +242,26 @@ const washingtonJumpSprites = [1, 2, 3, 4, 5, 6].map((frame) => {
   image.src = `assets/washington-jump-${frame}.png`;
   return image;
 });
+const jfkSprite = new Image();
+jfkSprite.src = "assets/jfk-standing-walking-blocking-sheet-alpha.png?v=20260701a";
+const jfkWalkSprite = new Image();
+jfkWalkSprite.src = "assets/jfk-walk-user-alpha.png?v=20260702a";
+const jfkJumpCrouchSprite = new Image();
+jfkJumpCrouchSprite.src = "assets/jfk-jump-crouch-sheet-alpha.png?v=20260701a";
+const jfkCrouchBlockSprite = new Image();
+jfkCrouchBlockSprite.src = "assets/jfk-crouch-block-alpha.png?v=20260702a";
+const jfkAttackSprite = new Image();
+jfkAttackSprite.src = "assets/jfk-standing-punch-kick-sheet-alpha.png?v=20260702a";
+const jfkCrouchAttackSprite = new Image();
+jfkCrouchAttackSprite.src = "assets/jfk-crouch-punch-kick-sheet-alpha.png?v=20260702a";
+const jfkHitSprite = new Image();
+jfkHitSprite.src = "assets/jfk-hit-alpha.png?v=20260702a";
+const jfkKnockoutGroundSprite = new Image();
+jfkKnockoutGroundSprite.src = "assets/jfk-knockout-ground-alpha.png?v=20260702a";
+const marilynWalkSprite = new Image();
+marilynWalkSprite.src = "assets/marilyn-walk-to-jfk-user-alpha.png?v=20260702a";
+const marilynJfkKissSprite = new Image();
+marilynJfkKissSprite.src = "assets/marilyn-jfk-kiss-dark-shoes-alpha.png?v=20260702a";
 const teddySprite = new Image();
 teddySprite.src = "assets/teddy-idle.png";
 const teddyPunchSprite = new Image();
@@ -314,6 +336,14 @@ const criticalImages = [
   ...washingtonWalkSprites,
   ...washingtonBackwalkSprites,
   ...washingtonJumpSprites,
+  jfkSprite,
+  jfkWalkSprite,
+  jfkJumpCrouchSprite,
+  jfkCrouchBlockSprite,
+  jfkAttackSprite,
+  jfkCrouchAttackSprite,
+  jfkHitSprite,
+  jfkKnockoutGroundSprite,
   teddySprite,
   teddyPunchSprite,
   teddyKickSprite,
@@ -329,7 +359,7 @@ const criticalImages = [
   ...teddyKnockdownSprites,
   ...teddyVictorySprites
 ];
-const optionalImages = [stageImage, fordTheatreStageImage, asaTrenchardPlaySprite, mrsMountchessingtonPlaySprite, augustaPlaySprite, florencePlaySprite, johnWilkesBoothFinaleSprite, fordAudienceSprite, bloodPoolSprite, impactSparkSprite];
+const optionalImages = [stageImage, fordTheatreStageImage, asaTrenchardPlaySprite, mrsMountchessingtonPlaySprite, augustaPlaySprite, florencePlaySprite, johnWilkesBoothFinaleSprite, fordAudienceSprite, bloodPoolSprite, fighterShadowSprite, impactSparkSprite, marilynWalkSprite, marilynJfkKissSprite];
 const allImages = [...criticalImages, ...optionalImages];
 
 allImages.forEach((image) => {
@@ -438,6 +468,101 @@ const washingtonKnockdownFrames = [
   { image: washingtonKnockdownSprites[3], crop: { x: 39, y: 367, w: 380, h: 164 }, height: 99, offsetX: 4, lift: 0 },
   { image: washingtonKnockdownSprites[4], crop: { x: 32, y: 441, w: 400, h: 90 }, height: 56, offsetX: 0, lift: 0 }
 ];
+const jfkFrames = {
+  idle: {
+    image: jfkSprite,
+    crop: { x: 48, y: 46, w: 482, h: 780 },
+    height: 238,
+    offsetX: 0,
+    shadowWidth: 82
+  },
+  walk: {
+    image: jfkSprite,
+    crop: { x: 654, y: 46, w: 468, h: 788 },
+    height: 238,
+    offsetX: 2,
+    shadowWidth: 84
+  },
+  block: {
+    image: jfkSprite,
+    crop: { x: 1252, y: 94, w: 444, h: 742 },
+    height: 238,
+    offsetX: 2,
+    shadowWidth: 86
+  },
+  jump: {
+    image: jfkJumpCrouchSprite,
+    crop: { x: 320, y: 24, w: 460, h: 730 },
+    height: 238,
+    offsetX: 0,
+    shadowWidth: 76
+  },
+  crouch: {
+    image: jfkJumpCrouchSprite,
+    crop: { x: 1002, y: 318, w: 448, h: 516 },
+    height: 156,
+    offsetX: 2,
+    shadowWidth: 96
+  },
+  crouchBlock: {
+    image: jfkCrouchBlockSprite,
+    crop: { x: 292, y: 184, w: 660, h: 840 },
+    height: 156,
+    offsetX: 2,
+    shadowWidth: 104
+  },
+  punch: {
+    image: jfkAttackSprite,
+    crop: { x: 95, y: 60, w: 744, h: 792 },
+    height: 238,
+    offsetX: 36,
+    shadowWidth: 90
+  },
+  kick: {
+    image: jfkAttackSprite,
+    crop: { x: 895, y: 57, w: 758, h: 800 },
+    height: 238,
+    offsetX: 58,
+    shadowWidth: 118
+  },
+  crouchPunch: {
+    image: jfkCrouchAttackSprite,
+    crop: { x: 180, y: 181, w: 662, h: 554 },
+    height: 156,
+    offsetX: 36,
+    shadowWidth: 104
+  },
+  crouchKick: {
+    image: jfkCrouchAttackSprite,
+    crop: { x: 960, y: 199, w: 692, h: 544 },
+    height: 156,
+    anchorY: 500,
+    offsetX: 58,
+    shadowWidth: 132
+  },
+  hit: {
+    image: jfkHitSprite,
+    crop: { x: 284, y: 91, w: 724, h: 1010 },
+    height: 238,
+    offsetX: 4,
+    shadowWidth: 96
+  },
+  knockdown: {
+    image: jfkKnockoutGroundSprite,
+    crop: { x: 116, y: 301, w: 1493, h: 364 },
+    height: 78,
+    offsetX: 8,
+    shadowWidth: 148
+  }
+};
+const jfkWalkFrames = [
+  { image: jfkWalkSprite, crop: { x: 36, y: 40, w: 683, h: 1135 }, height: 238, offsetX: 22, shadowWidth: 126 },
+  { image: jfkWalkSprite, crop: { x: 863, y: 49, w: 539, h: 1126 }, height: 238, offsetX: 14, shadowWidth: 106 },
+  { image: jfkWalkSprite, crop: { x: 1688, y: 20, w: 399, h: 1155 }, height: 238, offsetX: 0, shadowWidth: 88 },
+  { image: jfkWalkSprite, crop: { x: 2424, y: 16, w: 436, h: 1159 }, height: 238, offsetX: 2, shadowWidth: 96 },
+  { image: jfkWalkSprite, crop: { x: 3060, y: 41, w: 674, h: 1134 }, height: 238, offsetX: 20, shadowWidth: 126 }
+];
+const jfkWalkCycle = [0, 1, 2, 3, 4];
 // Tune anchorX / anchorY per frame here if feet drift.
 // anchorX is source-crop pixels before scaling.
 // anchorY is source-crop pixels before scaling, usually crop.h for foot baseline.
@@ -645,6 +770,18 @@ const tuningGroups = [
   { fighter: "Washington", label: "washington hit", frames: [washingtonFrames.hit] },
   { fighter: "Washington", label: "washington victory", frames: washingtonVictoryFrames },
   { fighter: "Washington", label: "washington knockdown", frames: washingtonKnockdownFrames },
+  { fighter: "Kennedy", label: "jfk idle", frames: [jfkFrames.idle] },
+  { fighter: "Kennedy", label: "jfk walk", frames: jfkWalkFrames },
+  { fighter: "Kennedy", label: "jfk block", frames: [jfkFrames.block] },
+  { fighter: "Kennedy", label: "jfk jump", frames: [jfkFrames.jump] },
+  { fighter: "Kennedy", label: "jfk crouch", frames: [jfkFrames.crouch] },
+  { fighter: "Kennedy", label: "jfk crouch block", frames: [jfkFrames.crouchBlock] },
+  { fighter: "Kennedy", label: "jfk hit", frames: [jfkFrames.hit] },
+  { fighter: "Kennedy", label: "jfk knockdown", frames: [jfkFrames.knockdown] },
+  { fighter: "Kennedy", label: "jfk punch", frames: [jfkFrames.punch], move: "punch" },
+  { fighter: "Kennedy", label: "jfk kick", frames: [jfkFrames.kick], move: "kick" },
+  { fighter: "Kennedy", label: "jfk crouch punch", frames: [jfkFrames.crouchPunch], move: "crouchPunch" },
+  { fighter: "Kennedy", label: "jfk crouch kick", frames: [jfkFrames.crouchKick], move: "crouchKick" },
   { fighter: "Lincoln", label: "lincoln idle", frames: [lincolnFrames.idle] },
   { fighter: "Lincoln", label: "lincoln walk", frames: lincolnWalkFrames },
   { fighter: "Lincoln", label: "lincoln jump", frames: lincolnJumpFrames },
@@ -808,6 +945,7 @@ let projectiles = [];
 let hitSparks = [];
 let combatEvents = [];
 let fordFinale = null;
+let marilynCameo = null;
 let roundTimer = timing.roundDurationFrames;
 const roundsToWin = 2;
 let playerRoundWins = 0;
@@ -816,6 +954,14 @@ let roundNumber = 1;
 let roundTransitionToken = 0;
 let matchPlayerData = presidents[0];
 let matchRivalData = presidents[1];
+const marilynCameoTiming = {
+  walkFrames: 252,
+  kissStart: 264,
+  kissHoldEnd: 374,
+  kissBlendFrames: 34,
+  combinedPoseStart: 258,
+  totalFrames: 466
+};
 let cpuEnabled = true;
 let aiDifficulty = "normal";
 let debugBoxes = false;
@@ -911,6 +1057,10 @@ function usesLincolnSprites(f) {
   return f.data.name === "Lincoln";
 }
 
+function usesJfkSprites(f) {
+  return f.data.name === "Kennedy";
+}
+
 function usesTeddySprites(f) {
   return f.data.name === "T. Roosevelt";
 }
@@ -946,6 +1096,7 @@ function startRound(p = matchPlayerData, r = matchRivalData) {
   hitSparks = [];
   combatEvents = [];
   fordFinale = null;
+  marilynCameo = null;
   hitPauseFrames = 0;
   tuningMode = false;
   pressed.clear();
@@ -972,6 +1123,7 @@ function finishRound(winner) {
   if (winner) startVictoryPose(winner);
 
   const matchWinner = playerRoundWins >= roundsToWin ? player : rivalRoundWins >= roundsToWin ? rival : null;
+  const kennedyMatchWin = matchWinner && usesJfkSprites(matchWinner);
   roundText = matchWinner
     ? `${matchWinner === player ? "PLAYER" : "RIVAL"} WINS MATCH`
     : winner
@@ -980,6 +1132,7 @@ function finishRound(winner) {
   roundTextTimer = 999;
 
   const token = ++roundTransitionToken;
+  if (kennedyMatchWin) startMarilynCameo(matchWinner);
   setTimeout(() => {
     if (token !== roundTransitionToken) return;
     if (matchWinner) {
@@ -988,7 +1141,7 @@ function finishRound(winner) {
     }
     roundNumber += 1;
     startRound();
-  }, 1000);
+  }, kennedyMatchWin ? Math.ceil((marilynCameoTiming.totalFrames / timing.fps) * 1000) : 1000);
 }
 
 function startVictoryPose(f) {
@@ -1011,6 +1164,32 @@ function stepVictoryPoses() {
   [player, rival].forEach((f) => {
     if (f.victory) f.victoryAge += 1;
   });
+}
+
+function startMarilynCameo(winner) {
+  const approachDir = winner.dir || (winner.x < W / 2 ? 1 : -1);
+  roundTextTimer = Math.min(roundTextTimer, 150);
+  marilynCameo = {
+    winner,
+    age: 0,
+    enterFrom: approachDir > 0 ? W + 86 : -86,
+    targetX: clamp(winner.x + approachDir * 56, 90, W - 90),
+    y: floorY,
+    dir: -approachDir,
+    done: false
+  };
+}
+
+function stepMarilynCameo() {
+  if (!marilynCameo) return;
+  marilynCameo.age += 1;
+  roundTextTimer = Math.max(0, roundTextTimer - 1);
+  if (marilynCameo.winner) {
+    const approachDir = marilynCameo.winner.dir || -marilynCameo.dir;
+    marilynCameo.targetX = clamp(marilynCameo.winner.x + approachDir * 56, 90, W - 90);
+    marilynCameo.dir = -approachDir;
+  }
+  marilynCameo.done = marilynCameo.age > marilynCameoTiming.totalFrames;
 }
 
 function resetPositionsOnly() {
@@ -1280,6 +1459,14 @@ function tuningFrameImageLabel(frame) {
     ["lincolnBlockSprite", lincolnBlockSprite],
     ["lincolnCrouchBlockSprite", lincolnCrouchBlockSprite],
     ["lincolnHitSprite", lincolnHitSprite],
+    ["jfkSprite", jfkSprite],
+    ["jfkWalkSprite", jfkWalkSprite],
+    ["jfkJumpCrouchSprite", jfkJumpCrouchSprite],
+    ["jfkCrouchBlockSprite", jfkCrouchBlockSprite],
+    ["jfkAttackSprite", jfkAttackSprite],
+    ["jfkCrouchAttackSprite", jfkCrouchAttackSprite],
+    ["jfkHitSprite", jfkHitSprite],
+    ["jfkKnockoutGroundSprite", jfkKnockoutGroundSprite],
     ["teddySprite", teddySprite],
     ["teddyPunchSprite", teddyPunchSprite],
     ["teddyKickSprite", teddyKickSprite],
@@ -1413,6 +1600,7 @@ function update() {
   tick += 1;
   if (!running) {
     stepVictoryPoses();
+    stepMarilynCameo();
     pressed.clear();
     released.clear();
     return;
@@ -1527,10 +1715,10 @@ function updateFighterAnimationState(f) {
   setFighterState(f, nextState);
 
   if (nextState === "walkForward") {
-    const frames = usesTeddySprites(f) ? teddyWalkCycle : usesLincolnSprites(f) ? lincolnWalkCycle : washingtonWalkFrames;
+    const frames = usesTeddySprites(f) ? teddyWalkCycle : usesJfkSprites(f) ? jfkWalkCycle : usesLincolnSprites(f) ? lincolnWalkCycle : washingtonWalkFrames;
     advanceAnimation(f, frames, walkFrameTicks);
   } else if (nextState === "walkBack") {
-    const frames = usesTeddySprites(f) ? teddyBackwalkCycle : usesWashingtonSprites(f) ? washingtonBackwalkCycle : lincolnWalkCycle;
+    const frames = usesTeddySprites(f) ? teddyBackwalkCycle : usesJfkSprites(f) ? jfkWalkCycle : usesWashingtonSprites(f) ? washingtonBackwalkCycle : lincolnWalkCycle;
     advanceAnimation(f, frames, backwalkFrameTicks);
   }
   f.stateAge += 1;
@@ -2014,12 +2202,12 @@ function startFordFinale(defeated) {
     landFrame: 82,
     standFrame: 155,
     shotFrame: 217,
-    fallFrame: 259,
+    fallFrame: 247,
     startX: stageBooth?.x ?? 650,
     startY: stageBooth?.y ?? 280,
     startScale: stageBooth?.scale ?? 1,
     landingX,
-    landingY: floorY - 58,
+    landingY: floorY - 50,
     defeated
   };
   roundText = "SIC SEMPER!";
@@ -2125,6 +2313,7 @@ function draw() {
   projectiles.forEach(drawProjectile);
   drawFordBloodPool();
   drawFighters();
+  drawMarilynCameo();
   hitSparks.forEach(drawSpark);
   if (debugBoxes) drawDebug();
   if (tuningMode) drawTuningGuides();
@@ -2150,6 +2339,175 @@ function drawFighters() {
   }
   drawFighter(player);
   drawFighter(rival);
+}
+
+function drawMarilynCameo() {
+  if (!marilynCameo) return;
+  const age = marilynCameo.age;
+  const walkProgress = clamp(age / marilynCameoTiming.walkFrames, 0, 1);
+  const atKennedy = walkProgress >= 1;
+  const kissIn = clamp((age - marilynCameoTiming.kissStart) / marilynCameoTiming.kissBlendFrames, 0, 1);
+  const kissOut = clamp((age - marilynCameoTiming.kissHoldEnd) / marilynCameoTiming.kissBlendFrames, 0, 1);
+  const kissLean = Math.max(0, kissIn - kissOut);
+  const x = Math.round(lerp(marilynCameo.enterFrom, marilynCameo.targetX, easeOutQuad(walkProgress)));
+
+  if (marilynCombinedPoseActive(marilynCameo.winner)) {
+    drawMarilynKissSprite(marilynCameo, kissLean);
+  } else if (imageReady(marilynWalkSprite)) {
+    drawMarilynWalkSprite(marilynCameo, x, age);
+  } else {
+    const step = Math.floor(age / 14) % 4;
+    const wave = atKennedy ? Math.sin(age / 9) * 2 : Math.sin(age / 7) * 4;
+    const scale = 1.08;
+    drawGroundShadow(x, marilynCameo.y, 66);
+    ctx.save();
+    ctx.translate(x, marilynCameo.y + Math.round(wave * 0.25));
+    ctx.scale(marilynCameo.dir * scale, scale);
+    ctx.translate(Math.round(kissLean * 18), Math.round(-kissLean * 4));
+    drawMarilynBody(step, atKennedy, kissLean);
+    ctx.restore();
+  }
+
+}
+
+function marilynCombinedPoseActive(f) {
+  return Boolean(
+    marilynCameo
+      && marilynCameo.winner === f
+      && marilynCameo.age >= marilynCameoTiming.combinedPoseStart
+      && imageReady(marilynJfkKissSprite)
+  );
+}
+
+function drawMarilynWalkSprite(cameo, x, age) {
+  const frames = [
+    { x: 0, y: 0, w: 642, h: 1300 },
+    { x: 642, y: 0, w: 642, h: 1300 },
+    { x: 1284, y: 0, w: 642, h: 1300 },
+    { x: 1926, y: 0, w: 642, h: 1300 },
+    { x: 2568, y: 0, w: 642, h: 1300 }
+  ];
+  const frame = frames[Math.floor(age / 16) % frames.length];
+  const displayH = 232;
+  const displayW = Math.round(frame.w / frame.h * displayH);
+  drawGroundShadow(x, cameo.y, 58);
+  ctx.save();
+  ctx.translate(Math.round(x), Math.round(cameo.y));
+  ctx.scale(cameo.dir, 1);
+  ctx.drawImage(
+    marilynWalkSprite,
+    frame.x,
+    frame.y,
+    frame.w,
+    frame.h,
+    -Math.round(displayW / 2),
+    -displayH,
+    displayW,
+    displayH
+  );
+  ctx.restore();
+}
+
+function drawMarilynKissSprite(cameo, kissLean) {
+  const winner = cameo.winner;
+  const crop = { x: 184, y: 78, w: 798, h: 1224 };
+  const displayH = 238;
+  const scale = displayH / crop.h;
+  const displayW = Math.round(crop.w * scale);
+  const dir = winner?.dir || 1;
+  const x = Math.round(winner?.x ?? W / 2);
+  const y = Math.round(winner?.y ?? floorY);
+  const jfkAnchorX = Math.round(250 * scale);
+  drawGroundShadow(x + dir * 34, y, 132);
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(dir, 1);
+  ctx.globalAlpha = 0.9 + kissLean * 0.1;
+  ctx.drawImage(
+    marilynJfkKissSprite,
+    crop.x,
+    crop.y,
+    crop.w,
+    crop.h,
+    -jfkAnchorX,
+    -displayH,
+    displayW,
+    displayH
+  );
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+function drawMarilynBody(step, atKennedy, kissLean) {
+  const legSwing = atKennedy ? 0 : step === 1 ? 7 : step === 3 ? -7 : 0;
+  const lean = kissLean * 10;
+  const armLift = atKennedy ? 14 + kissLean * 14 : 0;
+
+  ctx.fillStyle = "#0b0c12";
+  ctx.fillRect(-27 + legSwing, -46, 13, 46);
+  ctx.fillRect(12 - legSwing, -46, 13, 46);
+  ctx.fillRect(-30 + legSwing, -5, 22, 7);
+  ctx.fillRect(7 - legSwing, -5, 22, 7);
+
+  const dressSheen = ctx.createLinearGradient(-42, -126, 42, -12);
+  dressSheen.addColorStop(0, "#d9d6cf");
+  dressSheen.addColorStop(0.48, "#fff7e7");
+  dressSheen.addColorStop(1, "#8f9299");
+  ctx.fillStyle = dressSheen;
+  ctx.beginPath();
+  ctx.moveTo(-30, -125);
+  ctx.quadraticCurveTo(-42, -88, -38, -54);
+  ctx.lineTo(-27, -8);
+  ctx.lineTo(31, -8);
+  ctx.lineTo(39, -54);
+  ctx.quadraticCurveTo(43, -92, 28, -125);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = "#f9f1df";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  ctx.fillStyle = "rgba(255, 255, 255, 0.58)";
+  ctx.fillRect(-18, -108, 6, 88);
+  ctx.fillRect(9, -116, 4, 94);
+  ctx.fillRect(23, -85, 5, 58);
+
+  ctx.fillStyle = "#f0c4a7";
+  ctx.fillRect(-44, -118, 14, 66);
+  ctx.save();
+  ctx.translate(33, -112);
+  ctx.rotate((-18 - armLift) * Math.PI / 180);
+  ctx.fillRect(0, 0, 14, 66);
+  ctx.fillRect(5, 58, 11, 13);
+  ctx.restore();
+
+  ctx.fillStyle = "#f6c8ad";
+  ctx.beginPath();
+  ctx.ellipse(lean, -158, 25, 30, -kissLean * 0.24, 0, Math.PI * 2);
+  ctx.fill();
+
+  const hair = ctx.createLinearGradient(-40, -194, 46, -128);
+  hair.addColorStop(0, "#fff9df");
+  hair.addColorStop(0.55, "#f3e4bf");
+  hair.addColorStop(1, "#d9bf89");
+  ctx.fillStyle = hair;
+  ctx.beginPath();
+  ctx.ellipse(lean - 5, -178, 40, 34, -0.25, 0, Math.PI * 2);
+  ctx.ellipse(lean + 17, -168, 27, 31, 0.28, 0, Math.PI * 2);
+  ctx.ellipse(lean - 27, -160, 22, 25, -0.42, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#fff7da";
+  ctx.beginPath();
+  ctx.ellipse(lean - 20, -188, 30, 16, -0.32, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = "#17131b";
+  ctx.fillRect(lean + 8, -161, 5, 4);
+  ctx.fillStyle = "#b82232";
+  ctx.fillRect(lean + 12 + kissLean * 3, -145, 15, 5);
+  ctx.fillStyle = "#f8f2df";
+  ctx.fillRect(lean - 24, -148, 4, 12);
+  ctx.fillRect(lean + 27, -148, 4, 12);
 }
 
 function activeHitLayer(attacker, defender) {
@@ -2522,8 +2880,14 @@ function drawHealth(x, y, f, flip) {
 }
 
 function drawFighter(f) {
+  if (marilynCombinedPoseActive(f)) return;
+
   if (usesWashingtonSprites(f) && imageReady(washingtonSprite)) {
     drawWashingtonSprite(f);
+    return;
+  }
+  if (usesJfkSprites(f) && imageReady(jfkSprite)) {
+    drawJfkSprite(f);
     return;
   }
   if (f.data.name === "Lincoln" && imageReady(lincolnSprite)) {
@@ -2759,6 +3123,78 @@ function lincolnJumpFrameFor(f) {
   return lincolnJumpFrames[4];
 }
 
+function drawJfkSprite(f) {
+  const frame = jfkFrameFor(f);
+  const bob = fighterBob(f);
+  const hurtFlash = f.hurt > 0 && f.knockdown === 0 && tick % 4 < 2;
+  const nf = normalizedFrame(frame);
+
+  drawShadow(f, nf.shadowWidth || 84);
+  ctx.save();
+  ctx.translate(Math.round(f.x), Math.round(f.y + bob));
+  ctx.scale(f.dir, 1);
+
+  if (f.block && frame !== jfkFrames.block && frame !== jfkFrames.crouchBlock) {
+    ctx.fillStyle = "rgba(158, 228, 255, 0.28)";
+    ctx.fillRect(-56, -138, 28, 108);
+  }
+
+  ctx.globalAlpha = hurtFlash ? 0.55 : 1;
+  ctx.drawImage(
+    preparedFrameCanvas(frame, nf.displayW, nf.displayH),
+    -Math.round(nf.anchorX * nf.scale) + nf.offsetX,
+    -Math.round(nf.anchorY * nf.scale) - nf.lift
+  );
+  ctx.globalAlpha = 1;
+
+  if (f.special > 0) {
+    ctx.fillStyle = f.data.accent;
+    ctx.fillRect(-44, -184, 10, 10);
+    ctx.fillRect(34, -194, 14, 14);
+    ctx.fillRect(-8, -208, 12, 12);
+  }
+
+  ctx.restore();
+}
+
+function jfkFrameFor(f) {
+  if (tuningMode && tuningTargetFighter() === f && currentTuningGroup().fighter === "Kennedy") return currentTuningFrame();
+  if (f.knockdown > 0) {
+    return f.knockdownLanded > 0 ? jfkFrames.knockdown : jfkFrames.hit;
+  }
+  if (f.blockType === "crouching") {
+    return jfkFrames.crouchBlock;
+  }
+  if (f.blockType === "standing" || f.stunType === "block") {
+    return jfkFrames.block;
+  }
+  if (f.hitReact > 0 || f.stunType === "hit") {
+    return jfkFrames.hit;
+  }
+  if (f.attack > 6 && f.attackType === "crouch-kick") {
+    return jfkFrames.crouchKick;
+  }
+  if (f.attack > 6 && f.attackType === "crouch-punch") {
+    return jfkFrames.crouchPunch;
+  }
+  if (f.attack > 6 && f.attackType === "kick") {
+    return jfkFrames.kick;
+  }
+  if (f.attack > 6 && f.attackType === "punch") {
+    return jfkFrames.punch;
+  }
+  if (f.jumping) {
+    return jfkFrames.jump;
+  }
+  if (f.crouching) {
+    return jfkFrames.crouch;
+  }
+  if (!f.jumping && Math.abs(f.vx) > 0.2) {
+    return jfkWalkFrames[jfkWalkCycle[f.animFrame % jfkWalkCycle.length]];
+  }
+  return jfkFrames.idle;
+}
+
 function drawTeddySprite(f) {
   const frame = teddyFrameFor(f);
   const bob = fighterBob(f);
@@ -2874,16 +3310,37 @@ function fighterBob(f) {
   if (f.knockdown > 0) return 0;
   if (f.jumping || Math.abs(f.vx) > 0.2) return 0;
   // Washington's detailed sprite art stays planted; avoid synthetic bobbing.
-  if (usesWashingtonSprites(f) || usesTeddySprites(f)) return 0;
+  if (usesWashingtonSprites(f) || usesJfkSprites(f) || usesTeddySprites(f)) return 0;
   return Math.sin(tick / 38) * 0.8;
 }
 
 function drawShadow(f, width) {
-  const air = Math.max(0, floorY - f.y);
+  drawGroundShadow(f.x, f.y, width);
+}
+
+function drawGroundShadow(x, footY, width) {
+  const air = Math.max(0, floorY - footY);
   const scale = clamp(1 - air / 230, 0.42, 1);
-  const shadowW = Math.round(width * scale);
-  ctx.fillStyle = "rgba(5, 6, 10, 0.78)";
-  ctx.fillRect(Math.round(f.x - shadowW / 2), floorY - 7, shadowW, 10);
+  const shadowW = Math.round(width * 1.85 * scale);
+  const shadowH = Math.round(clamp(shadowW * 0.16, 9, 24));
+  const alpha = 0.32 + scale * 0.46;
+
+  if (imageReady(fighterShadowSprite)) {
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.drawImage(
+      fighterShadowSprite,
+      Math.round(x - shadowW / 2),
+      Math.round(floorY - shadowH / 2 - 2),
+      shadowW,
+      shadowH
+    );
+    ctx.restore();
+    return;
+  }
+
+  ctx.fillStyle = `rgba(5, 6, 10, ${alpha})`;
+  ctx.fillRect(Math.round(x - shadowW / 2), floorY - 7, shadowW, 10);
 }
 
 function drawWashingtonSprite(f) {
@@ -3080,6 +3537,8 @@ function drawFordFinale() {
   const boothDisplayH = finaleFrame === 2 ? Math.round(displayH * 0.86) : finaleFrame === 3 ? 150 : displayH;
   const dir = finaleFrame === 2 ? -1 : 1;
 
+  drawBoothFinaleShadow(x, y, boothDisplayH);
+
   ctx.save();
   ctx.translate(Math.round(x), Math.round(y));
   ctx.scale(dir, 1);
@@ -3089,6 +3548,12 @@ function drawFordFinale() {
   if (!imageReady(johnWilkesBoothFinaleSprite) && fordFinale.age >= fordFinale.shotFrame - 3 && fordFinale.age <= fordFinale.shotFrame + 5) {
     drawMuzzleFlash(x - dir * Math.round(boothDisplayH * 0.43), y - Math.round(boothDisplayH * 0.31), dir);
   }
+}
+
+function drawBoothFinaleShadow(x, y, displayH) {
+  const footY = y + 58;
+  const sizeScale = clamp(displayH / 250, 0.55, 1);
+  drawGroundShadow(x, footY, 112 * sizeScale);
 }
 
 function boothFinaleFrame() {
