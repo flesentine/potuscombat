@@ -8,6 +8,17 @@ const playerSelect = document.getElementById("playerSelect");
 const rivalSelect = document.getElementById("rivalSelect");
 const startBtn = document.getElementById("startBtn");
 const overlay = document.getElementById("overlay");
+const arcadeFlow = document.getElementById("arcadeFlow");
+const introPanel = document.getElementById("introPanel");
+const characterPanel = document.getElementById("characterPanel");
+const locationPanel = document.getElementById("locationPanel");
+const introStartBtn = document.getElementById("introStartBtn");
+const characterGrid = document.getElementById("characterGrid");
+const locationGrid = document.getElementById("locationGrid");
+const launchMatchBtn = document.getElementById("launchMatchBtn");
+const selectionPrompt = document.getElementById("selectionPrompt");
+const selectedPlayerName = document.getElementById("selectedPlayerName");
+const selectedRivalName = document.getElementById("selectedRivalName");
 const p1Name = document.getElementById("p1Name");
 const p2Name = document.getElementById("p2Name");
 const p1Move = document.getElementById("p1Move");
@@ -140,6 +151,8 @@ const stageImage = new Image();
 stageImage.src = "assets/presidential-stage-16bit.png";
 const fordTheatreStageImage = new Image();
 fordTheatreStageImage.src = "assets/fords-theatre-stage-16bit.png?v=20260629c";
+const grassyKnollStageImage = new Image();
+grassyKnollStageImage.src = "assets/grassy-knoll-corrected-stage-16bit.png?v=20260703a";
 const asaTrenchardPlaySprite = new Image();
 asaTrenchardPlaySprite.src = "assets/asa-trenchard-play-sheet.png?v=20260629c";
 const mrsMountchessingtonPlaySprite = new Image();
@@ -158,6 +171,26 @@ const fighterShadowSprite = new Image();
 fighterShadowSprite.src = "assets/fighter-shadow.png?v=20260701a";
 const impactSparkSprite = new Image();
 impactSparkSprite.src = "assets/impact-spark.png";
+const umbrellaManSprite = new Image();
+umbrellaManSprite.src = "assets/umbrella-man-open-sheet-alpha.png?v=20260703a";
+const cameraManSprite = new Image();
+cameraManSprite.src = "assets/camera-man-8mm-sheet-alpha.png?v=20260703a";
+const grassyKnollBystandersSprite = new Image();
+grassyKnollBystandersSprite.src = "assets/grassy-knoll-bystanders-wave-sheet-alpha.png?v=20260703a";
+const kennedyMotorcadeSprite = new Image();
+kennedyMotorcadeSprite.src = "assets/kennedy-motorcade-lincoln-exit-alpha.png?v=20260703a";
+const kennedyMotorcadeJfkSprite = new Image();
+kennedyMotorcadeJfkSprite.src = "assets/kennedy-motorcade-jfk-exit-alpha.png?v=20260703a";
+const kennedyMotorcadeJfkShotSprite = new Image();
+kennedyMotorcadeJfkShotSprite.src = "assets/kennedy-motorcade-jfk-shot-no-yellow-alpha.png?v=20260705a";
+const jfkMotorcadeImpactBurstSprite = new Image();
+jfkMotorcadeImpactBurstSprite.src = "assets/jfk-motorcade-impact-burst-alpha.png?v=20260703a";
+const jfkBackToMotorcadeSprite = new Image();
+jfkBackToMotorcadeSprite.src = "assets/jfk-back-to-motorcade-alpha.png?v=20260703a";
+const jfkJumpIntoMotorcadeSprite = new Image();
+jfkJumpIntoMotorcadeSprite.src = "assets/jfk-jump-into-motorcade-solo-alpha.png?v=20260705a";
+const jfkDizzyLossSprite = new Image();
+jfkDizzyLossSprite.src = "assets/jfk-dizzy-loss-sheet-v2-alpha.png?v=20260705a";
 const lincolnSprite = new Image();
 lincolnSprite.src = "assets/lincoln-idle-game.png";
 const lincolnPunchSprite = new Image();
@@ -246,6 +279,8 @@ const jfkSprite = new Image();
 jfkSprite.src = "assets/jfk-standing-walking-blocking-sheet-alpha.png?v=20260701a";
 const jfkWalkSprite = new Image();
 jfkWalkSprite.src = "assets/jfk-walk-user-alpha.png?v=20260702a";
+const jfkBackwalkSprite = new Image();
+jfkBackwalkSprite.src = "assets/jfk-backwalk-defensive-alpha.png?v=20260703a";
 const jfkJumpCrouchSprite = new Image();
 jfkJumpCrouchSprite.src = "assets/jfk-jump-crouch-sheet-alpha.png?v=20260701a";
 const jfkCrouchBlockSprite = new Image();
@@ -338,6 +373,7 @@ const criticalImages = [
   ...washingtonJumpSprites,
   jfkSprite,
   jfkWalkSprite,
+  jfkBackwalkSprite,
   jfkJumpCrouchSprite,
   jfkCrouchBlockSprite,
   jfkAttackSprite,
@@ -359,7 +395,7 @@ const criticalImages = [
   ...teddyKnockdownSprites,
   ...teddyVictorySprites
 ];
-const optionalImages = [stageImage, fordTheatreStageImage, asaTrenchardPlaySprite, mrsMountchessingtonPlaySprite, augustaPlaySprite, florencePlaySprite, johnWilkesBoothFinaleSprite, fordAudienceSprite, bloodPoolSprite, fighterShadowSprite, impactSparkSprite, marilynWalkSprite, marilynJfkKissSprite];
+const optionalImages = [stageImage, fordTheatreStageImage, grassyKnollStageImage, asaTrenchardPlaySprite, mrsMountchessingtonPlaySprite, augustaPlaySprite, florencePlaySprite, johnWilkesBoothFinaleSprite, fordAudienceSprite, bloodPoolSprite, fighterShadowSprite, impactSparkSprite, umbrellaManSprite, cameraManSprite, grassyKnollBystandersSprite, kennedyMotorcadeSprite, kennedyMotorcadeJfkSprite, kennedyMotorcadeJfkShotSprite, jfkMotorcadeImpactBurstSprite, jfkBackToMotorcadeSprite, jfkJumpIntoMotorcadeSprite, jfkDizzyLossSprite, marilynWalkSprite, marilynJfkKissSprite];
 const allImages = [...criticalImages, ...optionalImages];
 
 allImages.forEach((image) => {
@@ -563,6 +599,14 @@ const jfkWalkFrames = [
   { image: jfkWalkSprite, crop: { x: 3060, y: 41, w: 674, h: 1134 }, height: 238, offsetX: 20, shadowWidth: 126 }
 ];
 const jfkWalkCycle = [0, 1, 2, 3, 4];
+const jfkBackwalkFrames = [
+  { image: jfkBackwalkSprite, crop: { x: 96, y: 47, w: 338, h: 601 }, height: 238, offsetX: -2, shadowWidth: 104 },
+  { image: jfkBackwalkSprite, crop: { x: 500, y: 47, w: 299, h: 609 }, height: 238, anchorX: 117, offsetX: -2, shadowWidth: 108 },
+  { image: jfkBackwalkSprite, crop: { x: 953, y: 50, w: 228, h: 606 }, height: 238, offsetX: 0, shadowWidth: 86 },
+  { image: jfkBackwalkSprite, crop: { x: 1309, y: 47, w: 326, h: 606 }, height: 238, offsetX: -2, shadowWidth: 102 },
+  { image: jfkBackwalkSprite, crop: { x: 1781, y: 46, w: 258, h: 610 }, height: 238, offsetX: 0, shadowWidth: 90 }
+];
+const jfkBackwalkCycle = [0, 1, 2, 3, 4];
 // Tune anchorX / anchorY per frame here if feet drift.
 // anchorX is source-crop pixels before scaling.
 // anchorY is source-crop pixels before scaling, usually crop.h for foot baseline.
@@ -772,6 +816,7 @@ const tuningGroups = [
   { fighter: "Washington", label: "washington knockdown", frames: washingtonKnockdownFrames },
   { fighter: "Kennedy", label: "jfk idle", frames: [jfkFrames.idle] },
   { fighter: "Kennedy", label: "jfk walk", frames: jfkWalkFrames },
+  { fighter: "Kennedy", label: "jfk walk back", frames: jfkBackwalkFrames },
   { fighter: "Kennedy", label: "jfk block", frames: [jfkFrames.block] },
   { fighter: "Kennedy", label: "jfk jump", frames: [jfkFrames.jump] },
   { fighter: "Kennedy", label: "jfk crouch", frames: [jfkFrames.crouch] },
@@ -901,7 +946,7 @@ const presidents = [
     name: "Kennedy",
     short: "JFK",
     move: "Moonshot Beam",
-    stage: "Cape Canaveral Podium",
+    stage: "Grassy Knoll",
     colors: ["#253f77", "#15151d", "#e8e8ef"],
     accent: "#9ee4ff",
     special: "beam",
@@ -929,11 +974,58 @@ const presidents = [
   }
 ];
 
-let player = makeFighter(presidents[0], 190, 1, true);
+const locations = [
+  {
+    id: "grassy",
+    name: "Grassy Knoll",
+    subtitle: "Motorcade Mayhem",
+    image: "grassy",
+    colors: ["#0f8f45", "#39c66a"]
+  },
+  {
+    id: "ford",
+    name: "Ford's Theatre",
+    subtitle: "Balcony Beatdown",
+    image: "ford",
+    colors: ["#4d1420", "#d1a860"]
+  },
+  {
+    id: "capitol",
+    name: "Capitol Steps",
+    subtitle: "Filibuster Fury",
+    image: "default",
+    colors: ["#244b8f", "#f2bb38"]
+  },
+  {
+    id: "mount-vernon",
+    name: "Mount Vernon",
+    subtitle: "Founding Father Fisticuffs",
+    image: "default",
+    colors: ["#253d72", "#d4a94f"]
+  },
+  {
+    id: "national-park",
+    name: "National Park",
+    subtitle: "Rough Rider Range",
+    image: "default",
+    colors: ["#263f26", "#e8cc8b"]
+  },
+  {
+    id: "monticello",
+    name: "Monticello Lawn",
+    subtitle: "Declaration Duel",
+    image: "default",
+    colors: ["#7c2727", "#2d5f47"]
+  }
+];
+
+let player = makeFighter(presidents[3], 190, 1, true);
 let rival = makeFighter(presidents[1], 730, -1, false);
 let running = false;
 let gameOver = false;
 let roundEndQueued = false;
+let roundResultCommitted = false;
+let roundFinale = { ford: false, motorcade: false };
 let roundText = "SELECT YOUR COMMANDER";
 let roundTextTimer = 999;
 let shake = 0;
@@ -945,15 +1037,22 @@ let projectiles = [];
 let hitSparks = [];
 let combatEvents = [];
 let fordFinale = null;
+let motorcadeFinale = null;
 let marilynCameo = null;
+let umbrellaMan = null;
 let roundTimer = timing.roundDurationFrames;
 const roundsToWin = 2;
 let playerRoundWins = 0;
 let rivalRoundWins = 0;
 let roundNumber = 1;
 let roundTransitionToken = 0;
-let matchPlayerData = presidents[0];
+let matchPlayerData = presidents[3];
 let matchRivalData = presidents[1];
+let selectedLocationId = "grassy";
+let arcadeScreen = "intro";
+let pendingPlayerIndex = 3;
+let pendingRivalIndex = 1;
+let selectionSlot = "player";
 const marilynCameoTiming = {
   walkFrames: 252,
   kissStart: 264,
@@ -962,6 +1061,89 @@ const marilynCameoTiming = {
   combinedPoseStart: 258,
   totalFrames: 466
 };
+const umbrellaManTiming = {
+  frameTicks: 18,
+  totalFrames: 132
+};
+const umbrellaManFrames = [
+  { x: 163, y: 182, w: 133, h: 433 },
+  { x: 564, y: 88, w: 141, h: 527 },
+  { x: 957, y: 111, w: 230, h: 505 },
+  { x: 1356, y: 60, w: 268, h: 556 },
+  { x: 1798, y: 57, w: 276, h: 559 }
+];
+const cameraManFrames = {
+  left: [
+    { x: 215, y: 113, w: 176, h: 527 },
+    { x: 677, y: 108, w: 222, h: 530 }
+  ],
+  right: [
+    { x: 1251, y: 104, w: 165, h: 534 },
+    { x: 1710, y: 113, w: 223, h: 525 }
+  ]
+};
+const grassyKnollBystanderFrames = [
+  { x: 180, y: 129, w: 166, h: 490 },
+  { x: 916, y: 140, w: 124, h: 478 },
+  { x: 1508, y: 132, w: 166, h: 487 }
+];
+const grassyKnollBystanders = [
+  { x: 390, y: 355, scale: 0.21, frame: 0, alpha: 0.9 },
+  { x: 512, y: 348, scale: 0.2, frame: 1, alpha: 0.88 },
+  { x: 790, y: 356, scale: 0.21, frame: 2, alpha: 0.88 }
+];
+const motorcadeFinaleTiming = {
+  driveInEnd: 150,
+  jumpStart: 205,
+  jumpEnd: 326,
+  driveOffStart: 334,
+  jfkShotStart: 524,
+  jfkShotFrameTicks: 42,
+  impactFrameTicks: 7,
+  duration: 844
+};
+const jfkDizzyRunCueFrames = 32;
+const jfkLossHitFrames = 28;
+const motorcadeOpponentTurnAge = 112;
+const kennedyMotorcadeRoadY = 401;
+const kennedyMotorcadeDisplayW = 500;
+const kennedyMotorcadeFrames = [
+  { x: 50, y: 239, w: 988, h: 263 },
+  { x: 1136, y: 213, w: 988, h: 289 }
+];
+const kennedyMotorcadeJfkFrames = [
+  { x: 42, y: 231, w: 1008, h: 278 },
+  { x: 1123, y: 231, w: 1009, h: 281 }
+];
+const kennedyMotorcadeJfkShotFrames = [
+  { x: 34, y: 193, w: 1006, h: 321 },
+  { x: 1131, y: 149, w: 1012, h: 365 }
+];
+const jfkMotorcadeImpactBurstFrames = [
+  { x: 137, y: 304, w: 96, h: 110 },
+  { x: 458, y: 235, w: 410, h: 242 },
+  { x: 868, y: 151, w: 390, h: 409 },
+  { x: 1396, y: 212, w: 278, h: 293 },
+  { x: 1848, y: 272, w: 185, h: 196 }
+];
+const jfkBackToMotorcadeFrames = [
+  { image: jfkBackToMotorcadeSprite, crop: { x: 141, y: 70, w: 299, h: 602 }, height: 602 },
+  { image: jfkBackToMotorcadeSprite, crop: { x: 678, y: 79, w: 266, h: 543 }, height: 543 },
+  { image: jfkBackToMotorcadeSprite, crop: { x: 1206, y: 86, w: 223, h: 460 }, height: 460 },
+  { image: jfkBackToMotorcadeSprite, crop: { x: 1658, y: 114, w: 175, h: 371 }, height: 371 }
+];
+const jfkJumpIntoMotorcadeFrame = {
+  image: jfkJumpIntoMotorcadeSprite,
+  crop: { x: 139, y: 124, w: 652, h: 1158 },
+  height: 1158,
+  anchorX: 180,
+  anchorY: 1158
+};
+const jfkDizzyLossFrames = [
+  { image: jfkDizzyLossSprite, crop: { x: 164, y: 76, w: 367, h: 717 }, height: 238, anchorX: 184, shadowWidth: 94 },
+  { image: jfkDizzyLossSprite, crop: { x: 740, y: 73, w: 252, h: 720 }, height: 238, anchorX: 126, shadowWidth: 82 },
+  { image: jfkDizzyLossSprite, crop: { x: 1194, y: 80, w: 391, h: 713 }, height: 238, anchorX: 196, shadowWidth: 94 }
+];
 let cpuEnabled = true;
 let aiDifficulty = "normal";
 let debugBoxes = false;
@@ -1072,8 +1254,130 @@ function populateSelects() {
     playerSelect.add(left);
     rivalSelect.add(right);
   });
+  playerSelect.value = "3";
   rivalSelect.value = "1";
   updateMoveCards();
+}
+
+function buildArcadeFlow() {
+  renderCharacterGrid();
+  renderLocationGrid();
+  setArcadeScreen("intro");
+}
+
+function setArcadeScreen(screen) {
+  arcadeScreen = screen;
+  arcadeFlow.classList.toggle("hidden", screen === "fight");
+  introPanel.classList.toggle("hidden", screen !== "intro");
+  characterPanel.classList.toggle("hidden", screen !== "characters");
+  locationPanel.classList.toggle("hidden", screen !== "locations");
+  if (screen === "characters") updateCharacterSelectionUi();
+  if (screen === "locations") updateLocationSelectionUi();
+}
+
+function renderCharacterGrid() {
+  characterGrid.innerHTML = "";
+  presidents.forEach((pres, index) => {
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = "character-card";
+    card.dataset.index = String(index);
+    card.dataset.short = pres.short;
+    card.style.setProperty("--c1", pres.colors[0]);
+    card.style.setProperty("--c2", pres.colors[1]);
+    card.style.setProperty("--c3", pres.colors[2]);
+    card.innerHTML = `
+      <div class="character-art"><span class="character-figure" aria-hidden="true"></span></div>
+      <footer>
+        <strong>${pres.name}</strong>
+        <small>${pres.move}</small>
+      </footer>
+    `;
+    card.addEventListener("click", () => chooseCharacter(index));
+    characterGrid.append(card);
+  });
+}
+
+function chooseCharacter(index) {
+  if (selectionSlot === "player") {
+    pendingPlayerIndex = index;
+    selectionSlot = "rival";
+  } else {
+    pendingRivalIndex = index;
+    selectionSlot = "player";
+    setArcadeScreen("locations");
+  }
+  updateCharacterSelectionUi();
+}
+
+function updateCharacterSelectionUi() {
+  selectionPrompt.textContent = selectionSlot === "player" ? "Select Player" : "Select Rival";
+  selectedPlayerName.textContent = presidents[pendingPlayerIndex]?.name || "---";
+  selectedRivalName.textContent = presidents[pendingRivalIndex]?.name || "---";
+  [...characterGrid.children].forEach((card) => {
+    const index = Number(card.dataset.index);
+    card.classList.toggle("is-player", index === pendingPlayerIndex);
+    card.classList.toggle("is-rival", index === pendingRivalIndex);
+  });
+}
+
+function renderLocationGrid() {
+  locationGrid.innerHTML = "";
+  locations.forEach((location) => {
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = "location-card";
+    card.dataset.location = location.id;
+    card.style.setProperty("--l1", location.colors[0]);
+    card.style.setProperty("--l2", location.colors[1]);
+    card.innerHTML = `
+      <span>${location.subtitle}</span>
+      <strong>${location.name}</strong>
+      <small>${location.image === "default" ? "Classic stage art" : "Special stage art"}</small>
+    `;
+    card.addEventListener("click", () => {
+      selectedLocationId = location.id;
+      updateLocationSelectionUi();
+    });
+    locationGrid.append(card);
+  });
+}
+
+function updateLocationSelectionUi() {
+  [...locationGrid.children].forEach((card) => {
+    card.classList.toggle("is-selected", card.dataset.location === selectedLocationId);
+  });
+}
+
+function selectedLocation() {
+  return locations.find((location) => location.id === selectedLocationId) || locations[0];
+}
+
+function launchSelectedMatch() {
+  playerSelect.value = String(pendingPlayerIndex);
+  rivalSelect.value = String(pendingRivalIndex);
+  updateMoveCards();
+  setArcadeScreen("fight");
+  resetMatch();
+}
+
+function handleArcadeFlowKey(event, wasDown) {
+  if (arcadeScreen === "fight") return false;
+  if (event.code === "Enter" && !wasDown) {
+    if (arcadeScreen === "intro") setArcadeScreen("characters");
+    else if (arcadeScreen === "locations") launchSelectedMatch();
+    return true;
+  }
+  if (arcadeScreen === "characters" && !wasDown && event.code === "Escape") {
+    setArcadeScreen("intro");
+    return true;
+  }
+  if (arcadeScreen === "locations" && !wasDown && event.code === "Escape") {
+    selectionSlot = "rival";
+    setArcadeScreen("characters");
+    return true;
+  }
+  return false;
 }
 
 function resetMatch() {
@@ -1096,7 +1400,9 @@ function startRound(p = matchPlayerData, r = matchRivalData) {
   hitSparks = [];
   combatEvents = [];
   fordFinale = null;
+  motorcadeFinale = null;
   marilynCameo = null;
+  umbrellaMan = null;
   hitPauseFrames = 0;
   tuningMode = false;
   pressed.clear();
@@ -1107,6 +1413,8 @@ function startRound(p = matchPlayerData, r = matchRivalData) {
   running = true;
   gameOver = false;
   roundEndQueued = false;
+  roundResultCommitted = false;
+  roundFinale = { ford: false, motorcade: false };
   lastFrameTime = 0;
   frameLag = 0;
   overlay.classList.add("hidden");
@@ -1118,12 +1426,12 @@ function finishRound(winner) {
   running = false;
   clearCombatEvents();
   projectiles = [];
-  if (winner === player) playerRoundWins += 1;
-  if (winner === rival) rivalRoundWins += 1;
+  commitRoundWinner(winner);
   if (winner) startVictoryPose(winner);
 
   const matchWinner = playerRoundWins >= roundsToWin ? player : rivalRoundWins >= roundsToWin ? rival : null;
   const kennedyMatchWin = matchWinner && usesJfkSprites(matchWinner);
+  const kennedyMatchLoss = Boolean(matchWinner && !usesJfkSprites(matchWinner) && (usesJfkSprites(player) || usesJfkSprites(rival)));
   roundText = matchWinner
     ? `${matchWinner === player ? "PLAYER" : "RIVAL"} WINS MATCH`
     : winner
@@ -1133,6 +1441,13 @@ function finishRound(winner) {
 
   const token = ++roundTransitionToken;
   if (kennedyMatchWin) startMarilynCameo(matchWinner);
+  if (kennedyMatchLoss) startUmbrellaMan();
+  const umbrellaDelayFrames = umbrellaMan ? Math.max(18, umbrellaManTiming.totalFrames - umbrellaMan.age) : umbrellaManTiming.totalFrames;
+  const matchDelay = kennedyMatchWin
+    ? Math.ceil((marilynCameoTiming.totalFrames / timing.fps) * 1000)
+    : kennedyMatchLoss
+      ? Math.ceil((umbrellaDelayFrames / timing.fps) * 1000)
+      : 1000;
   setTimeout(() => {
     if (token !== roundTransitionToken) return;
     if (matchWinner) {
@@ -1141,7 +1456,14 @@ function finishRound(winner) {
     }
     roundNumber += 1;
     startRound();
-  }, kennedyMatchWin ? Math.ceil((marilynCameoTiming.totalFrames / timing.fps) * 1000) : 1000);
+  }, matchDelay);
+}
+
+function commitRoundWinner(winner) {
+  if (roundResultCommitted) return;
+  roundResultCommitted = true;
+  if (winner === player) playerRoundWins += 1;
+  if (winner === rival) rivalRoundWins += 1;
 }
 
 function startVictoryPose(f) {
@@ -1192,6 +1514,21 @@ function stepMarilynCameo() {
   marilynCameo.done = marilynCameo.age > marilynCameoTiming.totalFrames;
 }
 
+function startUmbrellaMan() {
+  if (umbrellaMan) return;
+  umbrellaMan = {
+    age: 0,
+    done: false
+  };
+  roundTextTimer = Math.min(roundTextTimer, 120);
+}
+
+function stepUmbrellaMan() {
+  if (!umbrellaMan) return;
+  umbrellaMan.age += 1;
+  umbrellaMan.done = umbrellaMan.age > umbrellaManTiming.totalFrames;
+}
+
 function resetPositionsOnly() {
   // Training reset preserves health and timer so repeated spacing tests do not
   // erase the situation. Shift+R does the full health/timer reset.
@@ -1207,6 +1544,8 @@ function resetPositionsOnly() {
   hitSparks = [];
   combatEvents = [];
   fordFinale = null;
+  motorcadeFinale = null;
+  umbrellaMan = null;
   hitPauseFrames = 0;
   pressed.clear();
   released.clear();
@@ -1214,6 +1553,8 @@ function resetPositionsOnly() {
   gameOver = false;
   running = true;
   roundEndQueued = false;
+  roundResultCommitted = false;
+  roundFinale = { ford: false, motorcade: false };
   roundText = "TRAINING RESET";
   roundTextTimer = 42;
   overlay.classList.add("hidden");
@@ -1265,14 +1606,30 @@ function clearFighterForTraining(f) {
 function updateMoveCards() {
   const p = presidents[Number(playerSelect.value)];
   const r = presidents[Number(rivalSelect.value)];
+  const location = selectedLocation();
   p1Name.textContent = p.name;
   p2Name.textContent = r.name;
-  p1Move.textContent = `${p.move} - ${p.stage}`;
-  p2Move.textContent = `${r.move} - ${r.stage}`;
+  p1Move.textContent = `${p.move} - ${location.name}`;
+  p2Move.textContent = `${r.move} - ${location.name}`;
 }
 
 function activeStageImage() {
-  return isFordTheatreMatch() ? fordTheatreStageImage : stageImage;
+  const location = selectedLocation();
+  if (location.image === "grassy") return grassyKnollStageImage;
+  if (location.image === "ford") return fordTheatreStageImage;
+  return stageImage;
+}
+
+function isKennedyMatch() {
+  return matchPlayerData.name === "Kennedy" || matchRivalData.name === "Kennedy";
+}
+
+function isGrassyKnollStage() {
+  return selectedLocation().image === "grassy";
+}
+
+function isActiveFordTheatreStage() {
+  return selectedLocation().image === "ford";
 }
 
 function isFordTheatreMatch() {
@@ -1280,10 +1637,23 @@ function isFordTheatreMatch() {
 }
 
 function shouldPlayFordFinale(defeated) {
-  if (!isFordTheatreMatch() || defeated.data.name !== "Lincoln") return false;
+  if (!isActiveFordTheatreStage() || defeated.data.name !== "Lincoln") return false;
   const winner = defeated === player ? rival : player;
   const nextWins = (winner === player ? playerRoundWins : rivalRoundWins) + 1;
   return nextWins >= roundsToWin;
+}
+
+function shouldPlayMotorcadeFinale(defeated) {
+  if (!isGrassyKnollStage() || !motorcadeFinaleVariantFor(defeated)) return false;
+  const winner = defeated === player ? rival : player;
+  const nextWins = (winner === player ? playerRoundWins : rivalRoundWins) + 1;
+  return nextWins >= roundsToWin;
+}
+
+function motorcadeFinaleVariantFor(f) {
+  if (f.data.name === "Lincoln") return "lincoln";
+  if (usesJfkSprites(f)) return "jfk";
+  return "";
 }
 
 function rect(f) {
@@ -1461,6 +1831,7 @@ function tuningFrameImageLabel(frame) {
     ["lincolnHitSprite", lincolnHitSprite],
     ["jfkSprite", jfkSprite],
     ["jfkWalkSprite", jfkWalkSprite],
+    ["jfkBackwalkSprite", jfkBackwalkSprite],
     ["jfkJumpCrouchSprite", jfkJumpCrouchSprite],
     ["jfkCrouchBlockSprite", jfkCrouchBlockSprite],
     ["jfkAttackSprite", jfkAttackSprite],
@@ -1601,6 +1972,7 @@ function update() {
   if (!running) {
     stepVictoryPoses();
     stepMarilynCameo();
+    stepUmbrellaMan();
     pressed.clear();
     released.clear();
     return;
@@ -1639,6 +2011,8 @@ function update() {
   updateMove(rival, player);
   stepCombatEvents();
   stepFordFinale();
+  stepMotorcadeFinale();
+  stepUmbrellaMan();
   if (!gameOver) stepProjectiles();
   updateFighterAnimationState(player);
   updateFighterAnimationState(rival);
@@ -1651,10 +2025,15 @@ function update() {
     clearCombatEvents();
     projectiles = [];
     const defeated = player.hp <= 0 ? player : rival;
+    const winner = defeated === player ? rival : player;
+    roundFinale = {
+      ford: shouldPlayFordFinale(defeated),
+      motorcade: shouldPlayMotorcadeFinale(defeated)
+    };
     defeated.attack = 0;
     defeated.attackType = "";
     defeated.currentMove = null;
-    if (shouldPlayFordFinale(defeated)) {
+    if (roundFinale.ford || roundFinale.motorcade) {
       defeated.knockdown = 1;
       defeated.knockdownAge = 0;
       defeated.knockdownLanded = 0;
@@ -1669,6 +2048,7 @@ function update() {
       roundText = "K.O.";
       roundTextTimer = 999;
     }
+    commitRoundWinner(winner);
   }
 
   if (gameOver && (player.hp <= 0 || rival.hp <= 0)) {
@@ -1679,9 +2059,17 @@ function update() {
       defeated.vx = 0;
       defeated.vy = 0;
       defeated.jumping = false;
-      if (shouldPlayFordFinale(defeated)) {
+      if (roundFinale.ford) {
         if (!fordFinale) startFordFinale(defeated);
         if (!fordFinaleDone()) {
+          pressed.clear();
+          released.clear();
+          return;
+        }
+      }
+      if (roundFinale.motorcade) {
+        if (!motorcadeFinale) startMotorcadeFinale(defeated);
+        if (!motorcadeFinaleDone()) {
           pressed.clear();
           released.clear();
           return;
@@ -1718,7 +2106,7 @@ function updateFighterAnimationState(f) {
     const frames = usesTeddySprites(f) ? teddyWalkCycle : usesJfkSprites(f) ? jfkWalkCycle : usesLincolnSprites(f) ? lincolnWalkCycle : washingtonWalkFrames;
     advanceAnimation(f, frames, walkFrameTicks);
   } else if (nextState === "walkBack") {
-    const frames = usesTeddySprites(f) ? teddyBackwalkCycle : usesJfkSprites(f) ? jfkWalkCycle : usesWashingtonSprites(f) ? washingtonBackwalkCycle : lincolnWalkCycle;
+    const frames = usesTeddySprites(f) ? teddyBackwalkCycle : usesJfkSprites(f) ? jfkBackwalkCycle : usesWashingtonSprites(f) ? washingtonBackwalkCycle : lincolnWalkCycle;
     advanceAnimation(f, frames, backwalkFrameTicks);
   }
   f.stateAge += 1;
@@ -2239,6 +2627,72 @@ function fordFinaleDone() {
   return fordFinale && fordFinale.age >= fordFinale.duration;
 }
 
+function startMotorcadeFinale(defeated) {
+  const stopX = clamp(defeated.x + 140, 430, 780);
+  const variant = motorcadeFinaleVariantFor(defeated);
+  const opponent = variant === "jfk" ? (defeated === player ? rival : player) : null;
+  defeated.vx = 0;
+  defeated.vy = 0;
+  hitSparks = [];
+  if (opponent) clearMotorcadeOpponentState(opponent);
+  motorcadeFinale = {
+    age: 0,
+    defeated,
+    defeatedStartX: defeated.x,
+    defeatedStartY: defeated.y,
+    opponent,
+    opponentStartX: opponent?.x ?? 0,
+    opponentTargetX: opponent ? clamp(defeated.x - 260, 80, 330) : 0,
+    variant,
+    stopX,
+    startX: -360,
+    endX: W + 380,
+    y: kennedyMotorcadeRoadY,
+    duration: motorcadeFinaleTiming.duration
+  };
+  roundText = "MOTORCADE!";
+  roundTextTimer = motorcadeFinaleTiming.duration;
+}
+
+function stepMotorcadeFinale() {
+  if (!motorcadeFinale) return;
+  motorcadeFinale.age += 1;
+  motorcadeFinale.defeated.x = motorcadeFinale.defeatedStartX;
+  motorcadeFinale.defeated.y = motorcadeFinale.defeatedStartY;
+  motorcadeFinale.defeated.vx = 0;
+  motorcadeFinale.defeated.vy = 0;
+  if (motorcadeFinale.opponent) {
+    const progress = clamp(motorcadeFinale.age / motorcadeFinaleTiming.driveInEnd, 0, 1);
+    const nextX = lerp(motorcadeFinale.opponentStartX, motorcadeFinale.opponentTargetX, easeOutQuad(progress));
+    clearMotorcadeOpponentState(motorcadeFinale.opponent);
+    motorcadeFinale.opponent.vx = progress < 1 ? -1 : 0;
+    motorcadeFinale.opponent.x = nextX;
+    motorcadeFinale.opponent.dir = motorcadeFinale.age >= motorcadeOpponentTurnAge ? 1 : -1;
+  }
+  if (motorcadeFinale.age === motorcadeFinaleTiming.driveOffStart && motorcadeFinale.variant === "jfk") {
+    startUmbrellaMan();
+  }
+}
+
+function motorcadeFinaleDone() {
+  return motorcadeFinale && motorcadeFinale.age >= motorcadeFinale.duration;
+}
+
+function clearMotorcadeOpponentState(f) {
+  f.currentMove = null;
+  f.attack = 0;
+  f.attackType = "";
+  f.cooldown = 0;
+  f.block = false;
+  f.blockType = "";
+  f.crouching = false;
+  f.jumping = false;
+  f.hurt = 0;
+  f.hitReact = 0;
+  f.stunType = "";
+  f.victory = false;
+}
+
 function stepProjectiles() {
   projectiles.forEach((p) => {
     p.age = (p.age || 0) + 1;
@@ -2306,12 +2760,16 @@ function draw() {
   const ox = shake ? Math.round((Math.random() - 0.5) * shake) : 0;
   const oy = shake ? Math.round((Math.random() - 0.5) * shake) : 0;
   drawStage();
+  drawCameraMan();
+  drawGrassyKnollBystanders();
+  drawUmbrellaMan();
   drawFordBackgroundActors();
   drawHud();
   ctx.save();
   ctx.translate(ox, oy);
   projectiles.forEach(drawProjectile);
   drawFordBloodPool();
+  drawMotorcadeFinale();
   drawFighters();
   drawMarilynCameo();
   hitSparks.forEach(drawSpark);
@@ -2339,6 +2797,88 @@ function drawFighters() {
   }
   drawFighter(player);
   drawFighter(rival);
+}
+
+function drawCameraMan() {
+  if (!isGrassyKnollStage() || !imageReady(cameraManSprite)) return;
+  const actionX = motorcadeFinale ? motorcadeLayout().x : (player.x + rival.x) / 2;
+  const x = clamp(618 + (actionX - W / 2) * 0.12, 590, 690);
+  const y = 328;
+  const direction = actionX < x ? "left" : "right";
+  const frames = cameraManFrames[direction];
+  const frame = frames[0];
+  const scale = 0.18;
+  const displayW = Math.round(frame.w * scale);
+  const displayH = Math.round(frame.h * scale);
+
+  ctx.save();
+  ctx.globalAlpha = 0.92;
+  ctx.drawImage(
+    cameraManSprite,
+    frame.x,
+    frame.y,
+    frame.w,
+    frame.h,
+    Math.round(x - displayW / 2),
+    Math.round(y - displayH),
+    displayW,
+    displayH
+  );
+  ctx.restore();
+}
+
+function drawGrassyKnollBystanders() {
+  if (!isGrassyKnollStage() || !imageReady(grassyKnollBystandersSprite)) return;
+
+  grassyKnollBystanders.forEach((actor) => {
+    const frame = grassyKnollBystanderFrames[actor.frame];
+    const displayW = Math.round(frame.w * actor.scale);
+    const displayH = Math.round(frame.h * actor.scale);
+
+    ctx.save();
+    ctx.globalAlpha = actor.alpha;
+    ctx.drawImage(
+      grassyKnollBystandersSprite,
+      frame.x,
+      frame.y,
+      frame.w,
+      frame.h,
+      Math.round(actor.x - displayW / 2),
+      Math.round(actor.y - displayH),
+      displayW,
+      displayH
+    );
+    ctx.restore();
+  });
+}
+
+function drawUmbrellaMan() {
+  if (!isGrassyKnollStage() || !imageReady(umbrellaManSprite)) return;
+  const age = umbrellaMan?.age ?? 0;
+  const frameIndex = umbrellaMan
+    ? clamp(Math.floor(age / umbrellaManTiming.frameTicks), 0, umbrellaManFrames.length - 1)
+    : 0;
+  const frame = umbrellaManFrames[frameIndex];
+  const scale = 0.22;
+  const displayW = Math.round(frame.w * scale);
+  const displayH = Math.round(frame.h * scale);
+  const x = 350;
+  const y = 326;
+
+  ctx.save();
+  ctx.globalAlpha = 0.9;
+  ctx.drawImage(
+    umbrellaManSprite,
+    frame.x,
+    frame.y,
+    frame.w,
+    frame.h,
+    Math.round(x - displayW / 2),
+    Math.round(y - displayH),
+    displayW,
+    displayH
+  );
+  ctx.restore();
 }
 
 function drawMarilynCameo() {
@@ -2529,7 +3069,7 @@ function drawStage() {
 }
 
 function drawFordAudienceSilhouettes() {
-  if (!isFordTheatreMatch()) return;
+  if (!isActiveFordTheatreStage()) return;
   if (imageReady(fordAudienceSprite)) {
     ctx.save();
     ctx.globalAlpha = 0.96;
@@ -2578,7 +3118,7 @@ function drawFordAudienceSilhouettes() {
 }
 
 function drawFordBackgroundActors() {
-  if (!isFordTheatreMatch()) return;
+  if (!isActiveFordTheatreStage()) return;
   fordBackgroundActors.forEach((actor) => {
     if (actor.role === "booth" && fordFinale) return;
     drawFordBackgroundActor(actor);
@@ -2881,6 +3421,7 @@ function drawHealth(x, y, f, flip) {
 
 function drawFighter(f) {
   if (marilynCombinedPoseActive(f)) return;
+  if (isMotorcadeFinaleVictim(f)) return;
 
   if (usesWashingtonSprites(f) && imageReady(washingtonSprite)) {
     drawWashingtonSprite(f);
@@ -3190,7 +3731,10 @@ function jfkFrameFor(f) {
     return jfkFrames.crouch;
   }
   if (!f.jumping && Math.abs(f.vx) > 0.2) {
-    return jfkWalkFrames[jfkWalkCycle[f.animFrame % jfkWalkCycle.length]];
+    const movingForward = Math.sign(f.vx) === f.dir;
+    const cycle = movingForward ? jfkWalkCycle : jfkBackwalkCycle;
+    const frames = movingForward ? jfkWalkFrames : jfkBackwalkFrames;
+    return frames[cycle[f.animFrame % cycle.length]];
   }
   return jfkFrames.idle;
 }
@@ -3550,6 +4094,220 @@ function drawFordFinale() {
   }
 }
 
+function drawMotorcadeFinale() {
+  if (!motorcadeFinale) return;
+  const age = motorcadeFinale.age;
+  const layout = motorcadeLayout();
+  const carFrameIndex = age >= motorcadeFinaleTiming.jumpEnd ? 1 : 0;
+
+  drawMotorcadeCar(carFrameIndex, layout.x, layout.y, layout.displayW);
+  drawMotorcadeImpactBurst(layout);
+  drawMotorcadePassenger(layout);
+}
+
+function motorcadeLayout() {
+  const age = motorcadeFinale.age;
+  const carFrame = motorcadeFinaleFrames()[0];
+  const displayW = kennedyMotorcadeDisplayW;
+  const displayH = Math.round((carFrame.h / carFrame.w) * displayW);
+  let x = motorcadeFinale.stopX;
+
+  if (age < motorcadeFinaleTiming.driveInEnd) {
+    x = lerp(motorcadeFinale.startX, motorcadeFinale.stopX, easeOutQuad(age / motorcadeFinaleTiming.driveInEnd));
+  } else if (motorcadeFinale.variant === "jfk" && age >= motorcadeFinaleTiming.driveOffStart && age < motorcadeFinaleTiming.jfkShotStart) {
+    const progress = clamp((age - motorcadeFinaleTiming.driveOffStart) / (motorcadeFinaleTiming.jfkShotStart - motorcadeFinaleTiming.driveOffStart), 0, 1);
+    x = lerp(motorcadeFinale.stopX, motorcadeFinale.stopX + 170, progress);
+  } else if (motorcadeFinale.variant === "jfk" && age >= motorcadeFinaleTiming.jfkShotStart) {
+    const progress = clamp((age - motorcadeFinaleTiming.jfkShotStart) / (motorcadeFinale.duration - motorcadeFinaleTiming.jfkShotStart), 0, 1);
+    x = lerp(motorcadeFinale.stopX + 170, motorcadeFinale.endX, easeInQuad(progress));
+  } else if (age >= motorcadeFinaleTiming.driveOffStart) {
+    const progress = clamp((age - motorcadeFinaleTiming.driveOffStart) / (motorcadeFinale.duration - motorcadeFinaleTiming.driveOffStart), 0, 1);
+    x = lerp(motorcadeFinale.stopX, motorcadeFinale.endX, easeInQuad(progress));
+  }
+
+  return {
+    x,
+    y: motorcadeFinale.y,
+    displayW,
+    displayH,
+    seatX: x - displayW * 0.25,
+    seatY: motorcadeFinale.y - displayH * 0.55
+  };
+}
+
+function drawMotorcadeCar(frameIndex, x, y, displayW) {
+  const { sprite, frame } = motorcadeFinaleCarFrame(frameIndex);
+  const displayH = Math.round((frame.h / frame.w) * displayW);
+
+  ctx.save();
+  ctx.globalAlpha = imageReady(sprite) ? 1 : 0.92;
+  if (imageReady(sprite)) {
+    ctx.drawImage(
+      sprite,
+      frame.x,
+      frame.y,
+      frame.w,
+      frame.h,
+      Math.round(x - displayW / 2),
+      Math.round(y - displayH),
+      displayW,
+      displayH
+    );
+  } else {
+    ctx.fillStyle = "#05070a";
+    ctx.fillRect(Math.round(x - displayW / 2), Math.round(y - 74), displayW, 48);
+    ctx.fillStyle = "#d5dde7";
+    ctx.fillRect(Math.round(x - displayW * 0.16), Math.round(y - 104), 84, 30);
+    ctx.fillStyle = "#f5bfd0";
+    ctx.fillRect(Math.round(x - displayW * 0.26), Math.round(y - 99), 20, 28);
+  }
+  ctx.restore();
+}
+
+function motorcadeFinaleCarFrame(frameIndex) {
+  if (motorcadeFinale?.variant === "jfk" && motorcadeFinale.age >= motorcadeFinaleTiming.jfkShotStart) {
+    const shotAge = motorcadeFinale.age - motorcadeFinaleTiming.jfkShotStart;
+    const shotFrame = clamp(Math.floor(shotAge / motorcadeFinaleTiming.jfkShotFrameTicks), 0, kennedyMotorcadeJfkShotFrames.length - 1);
+    return {
+      sprite: kennedyMotorcadeJfkShotSprite,
+      frame: kennedyMotorcadeJfkShotFrames[shotFrame]
+    };
+  }
+  return {
+    sprite: motorcadeFinaleSprite(),
+    frame: motorcadeFinaleFrames()[frameIndex]
+  };
+}
+
+function motorcadeFinaleSprite() {
+  return motorcadeFinale?.variant === "jfk" ? kennedyMotorcadeJfkSprite : kennedyMotorcadeSprite;
+}
+
+function motorcadeFinaleFrames() {
+  return motorcadeFinale?.variant === "jfk" ? kennedyMotorcadeJfkFrames : kennedyMotorcadeFrames;
+}
+
+function drawMotorcadeImpactBurst(layout) {
+  if (motorcadeFinale?.variant !== "jfk" || !imageReady(jfkMotorcadeImpactBurstSprite)) return;
+  const impactAge = motorcadeFinale.age - motorcadeFinaleTiming.jfkShotStart;
+  if (impactAge < 0) return;
+  const frameIndex = Math.floor(impactAge / motorcadeFinaleTiming.impactFrameTicks);
+  if (frameIndex >= jfkMotorcadeImpactBurstFrames.length) return;
+
+  const frame = jfkMotorcadeImpactBurstFrames[frameIndex];
+  const scale = 0.34;
+  const displayW = Math.round(frame.w * scale);
+  const displayH = Math.round(frame.h * scale);
+  const x = layout.x - layout.displayW * 0.24;
+  const y = layout.y - layout.displayH * 0.92;
+
+  ctx.save();
+  ctx.globalAlpha = 0.92;
+  ctx.drawImage(
+    jfkMotorcadeImpactBurstSprite,
+    frame.x,
+    frame.y,
+    frame.w,
+    frame.h,
+    Math.round(x - displayW / 2),
+    Math.round(y - displayH / 2),
+    displayW,
+    displayH
+  );
+  ctx.restore();
+}
+
+function drawMotorcadePassenger(layout) {
+  const age = motorcadeFinale.age;
+  if (age >= motorcadeFinaleTiming.jumpEnd) return;
+
+  const defeated = motorcadeFinale.defeated;
+  const startX = motorcadeFinale.defeatedStartX ?? defeated.x;
+  const startY = motorcadeFinale.defeatedStartY ?? floorY;
+  const dir = layout.seatX >= startX ? 1 : -1;
+  let frame = motorcadePassengerIdleFrame(defeated, age);
+  let x = startX;
+  let y = startY;
+  let displayH = 238;
+  let shadowY = y;
+
+  if (usesJfkSprites(defeated) && age >= jfkLossHitFrames && age < motorcadeFinaleTiming.jumpStart && imageReady(jfkDizzyLossSprite)) {
+    x += Math.round(Math.sin(age / 10) * 7);
+  }
+
+  if (age >= motorcadeFinaleTiming.jumpStart) {
+    const progress = clamp((age - motorcadeFinaleTiming.jumpStart) / (motorcadeFinaleTiming.jumpEnd - motorcadeFinaleTiming.jumpStart), 0, 1);
+    const eased = easeOutQuad(progress);
+    const runAge = age - motorcadeFinaleTiming.jumpStart;
+    frame = motorcadePassengerJumpFrame(defeated, progress, runAge);
+    x = lerp(startX, layout.seatX, eased);
+    if (usesJfkSprites(defeated) && imageReady(jfkBackToMotorcadeSprite)) {
+      y = lerp(startY, layout.seatY + 76, eased);
+      displayH = frame === jfkJumpIntoMotorcadeFrame ? lerp(194, 164, eased) : lerp(238, 148, eased);
+      shadowY = lerp(startY, layout.y - layout.displayH * 0.16, eased);
+    } else {
+      const arc = Math.sin(progress * Math.PI) * 90;
+      y = lerp(startY, layout.seatY + 88, eased) - arc;
+      displayH = lerp(220, 118, eased);
+    }
+  }
+
+  drawMotorcadePassengerFrame(frame, x, y, dir, displayH, shadowY);
+}
+
+function motorcadePassengerIdleFrame(f, age = 0) {
+  if (usesJfkSprites(f) && age < jfkLossHitFrames && imageReady(jfkHitSprite)) {
+    return jfkFrames.hit;
+  }
+  if (usesJfkSprites(f) && imageReady(jfkDizzyLossSprite)) {
+    const cueStart = Math.max(0, motorcadeFinaleTiming.jumpStart - jfkDizzyRunCueFrames);
+    const index = age >= cueStart ? 2 : 1;
+    return jfkDizzyLossFrames[index];
+  }
+  return usesJfkSprites(f) ? jfkFrames.idle : lincolnFrames.idle;
+}
+
+function motorcadePassengerJumpFrame(f, progress, runAge = 0) {
+  if (usesJfkSprites(f) && imageReady(jfkBackToMotorcadeSprite)) {
+    if (progress >= 0.84 && imageReady(jfkJumpIntoMotorcadeSprite)) return jfkJumpIntoMotorcadeFrame;
+    const frameIndex = clamp(Math.floor(runAge / 10), 0, jfkBackToMotorcadeFrames.length - 1);
+    return jfkBackToMotorcadeFrames[frameIndex];
+  }
+  if (usesJfkSprites(f)) return jfkFrames.jump;
+  const jumpIndex = clamp(Math.floor(progress * lincolnJumpFrames.length), 0, lincolnJumpFrames.length - 1);
+  return lincolnJumpFrames[jumpIndex] || lincolnFrames.jump;
+}
+
+function drawMotorcadePassengerFrame(frame, x, y, dir, displayH, shadowY = floorY) {
+  const displayW = Math.round((frame.crop.w / frame.crop.h) * displayH);
+  const scale = displayH / frame.crop.h;
+  const anchorX = frame.anchorX ?? frame.crop.w / 2;
+  const anchorY = frame.anchorY ?? frame.crop.h;
+  const offsetX = Math.round((frame.offsetX || 0) * (displayH / frame.height));
+  const lift = Math.round((frame.lift || 0) * (displayH / frame.height));
+
+  drawGroundShadow(x, shadowY, clamp(displayW * 0.62, 34, 96));
+  ctx.save();
+  ctx.translate(Math.round(x), Math.round(y));
+  ctx.scale(dir, 1);
+  ctx.drawImage(
+    frame.image,
+    frame.crop.x,
+    frame.crop.y,
+    frame.crop.w,
+    frame.crop.h,
+    -Math.round(anchorX * scale) + offsetX,
+    -Math.round(anchorY * scale) - lift,
+    displayW,
+    displayH
+  );
+  ctx.restore();
+}
+
+function isMotorcadeFinaleVictim(f) {
+  return Boolean(motorcadeFinale && motorcadeFinale.defeated === f);
+}
+
 function drawBoothFinaleShadow(x, y, displayH) {
   const footY = y + 58;
   const sizeScale = clamp(displayH / 250, 0.55, 1);
@@ -3640,6 +4398,10 @@ function drawMuzzleFlash(x, y, dir) {
 
 function easeOutQuad(t) {
   return 1 - (1 - t) * (1 - t);
+}
+
+function easeInQuad(t) {
+  return t * t;
 }
 
 function lerp(a, b, t) {
@@ -3906,6 +4668,10 @@ window.addEventListener("keydown", (event) => {
   const wasDown = keys.has(event.code);
   keys.add(event.code);
   if (!wasDown) pressed.add(event.code);
+  if (handleArcadeFlowKey(event, wasDown)) {
+    event.preventDefault();
+    return;
+  }
   // Buffer jump at the browser input edge so a quick press survives hit pause
   // or a couple of locked frames and fires as soon as jumping is legal.
   if (event.code === "KeyW" && !wasDown) player.jumpBuffer = timing.jumpBufferFrames;
@@ -3949,6 +4715,9 @@ window.addEventListener("keyup", (event) => {
 playerSelect.addEventListener("change", updateMoveCards);
 rivalSelect.addEventListener("change", updateMoveCards);
 startBtn.addEventListener("click", resetMatch);
+introStartBtn.addEventListener("click", () => setArcadeScreen("characters"));
+launchMatchBtn.addEventListener("click", launchSelectedMatch);
 
 populateSelects();
+buildArcadeFlow();
 loop();

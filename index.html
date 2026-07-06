@@ -25,7 +25,7 @@
           <h1>POTUS COMBAT</h1>
         </div>
 
-        <div class="selectors">
+        <div class="selectors legacy-selectors">
           <label>
             Player
             <select id="playerSelect" aria-label="Choose player president"></select>
@@ -40,6 +40,43 @@
 
       <section class="screen-wrap" aria-label="Game screen">
         <canvas id="game" width="960" height="540"></canvas>
+        <div id="arcadeFlow" class="arcade-flow">
+          <section id="introPanel" class="arcade-panel intro-panel" aria-label="POTUS Combat intro">
+            <img src="assets/potus-combat-intro-splash.png" alt="POTUS COMBAT arcade intro art">
+            <div class="intro-copy">
+              <span>Insert Coin Into Democracy</span>
+              <button id="introStartBtn" type="button">Press Start</button>
+            </div>
+          </section>
+
+          <section id="characterPanel" class="arcade-panel character-panel hidden" aria-label="Character select">
+            <div class="select-header">
+              <span>Choose Your Executive</span>
+              <strong id="selectionPrompt">Select Player</strong>
+            </div>
+            <div id="characterGrid" class="character-grid"></div>
+            <div class="versus-strip">
+              <div>
+                <span>Player</span>
+                <strong id="selectedPlayerName">---</strong>
+              </div>
+              <b>VS</b>
+              <div>
+                <span>Rival</span>
+                <strong id="selectedRivalName">---</strong>
+              </div>
+            </div>
+          </section>
+
+          <section id="locationPanel" class="arcade-panel location-panel hidden" aria-label="Location select">
+            <div class="select-header">
+              <span>Battlefield Directive</span>
+              <strong>Select Location</strong>
+            </div>
+            <div id="locationGrid" class="location-grid"></div>
+            <button id="launchMatchBtn" class="launch-match" type="button">Launch Match</button>
+          </section>
+        </div>
         <div id="overlay" class="overlay">
           <div>
             <span class="insert">Press Start</span>
