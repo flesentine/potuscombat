@@ -15,10 +15,8 @@ const locationPanel = document.getElementById("locationPanel");
 const introStartBtn = document.getElementById("introStartBtn");
 const characterGrid = document.getElementById("characterGrid");
 const locationGrid = document.getElementById("locationGrid");
-const launchMatchBtn = document.getElementById("launchMatchBtn");
 const selectionPrompt = document.getElementById("selectionPrompt");
-const selectedPlayerName = document.getElementById("selectedPlayerName");
-const selectedRivalName = document.getElementById("selectedRivalName");
+const locationPrompt = document.getElementById("locationPrompt");
 const p1Name = document.getElementById("p1Name");
 const p2Name = document.getElementById("p2Name");
 const p1Move = document.getElementById("p1Move");
@@ -915,6 +913,7 @@ const presidents = [
   {
     name: "Washington",
     short: "WASH",
+    selectSlug: "washington",
     move: "Delaware Dash",
     stage: "Mount Vernon Portico",
     colors: ["#253d72", "#efe1b1", "#d4a94f"],
@@ -925,6 +924,7 @@ const presidents = [
   {
     name: "Lincoln",
     short: "LINC",
+    selectSlug: "lincoln",
     move: "Railsplitter Uppercut",
     stage: "Ford's Theatre",
     colors: ["#1c1c22", "#5a351f", "#dadde5"],
@@ -935,6 +935,7 @@ const presidents = [
   {
     name: "T. Roosevelt",
     short: "TEDDY",
+    selectSlug: "teddy",
     move: "Rough Rider Rush",
     stage: "National Park Outlook",
     colors: ["#6c4b25", "#263f26", "#e8cc8b"],
@@ -945,6 +946,7 @@ const presidents = [
   {
     name: "Kennedy",
     short: "JFK",
+    selectSlug: "kennedy",
     move: "Moonshot Beam",
     stage: "Grassy Knoll",
     colors: ["#253f77", "#15151d", "#e8e8ef"],
@@ -955,6 +957,7 @@ const presidents = [
   {
     name: "Jefferson",
     short: "JEFF",
+    selectSlug: "jefferson",
     move: "Quill Cyclone",
     stage: "Monticello Lawn",
     colors: ["#7c2727", "#ead7a5", "#2d5f47"],
@@ -965,6 +968,7 @@ const presidents = [
   {
     name: "Grant",
     short: "GRANT",
+    selectSlug: "grant",
     move: "Union Cannon",
     stage: "Capitol Encampment",
     colors: ["#243a66", "#324455", "#d0b06a"],
@@ -980,6 +984,7 @@ const locations = [
     name: "Grassy Knoll",
     subtitle: "Motorcade Mayhem",
     image: "grassy",
+    tile: "assets/grassy-knoll-updated-stage-16bit.png",
     colors: ["#0f8f45", "#39c66a"]
   },
   {
@@ -987,6 +992,7 @@ const locations = [
     name: "Ford's Theatre",
     subtitle: "Balcony Beatdown",
     image: "ford",
+    tile: "assets/fords-theatre-stage-16bit.png",
     colors: ["#4d1420", "#d1a860"]
   },
   {
@@ -994,6 +1000,7 @@ const locations = [
     name: "Capitol Steps",
     subtitle: "Filibuster Fury",
     image: "default",
+    tile: "assets/presidential-stage-16bit.png",
     colors: ["#244b8f", "#f2bb38"]
   },
   {
@@ -1001,6 +1008,7 @@ const locations = [
     name: "Mount Vernon",
     subtitle: "Founding Father Fisticuffs",
     image: "default",
+    tile: "assets/presidential-stage-16bit.png",
     colors: ["#253d72", "#d4a94f"]
   },
   {
@@ -1008,6 +1016,7 @@ const locations = [
     name: "National Park",
     subtitle: "Rough Rider Range",
     image: "default",
+    tile: "assets/presidential-stage-16bit.png",
     colors: ["#263f26", "#e8cc8b"]
   },
   {
@@ -1015,6 +1024,7 @@ const locations = [
     name: "Monticello Lawn",
     subtitle: "Declaration Duel",
     image: "default",
+    tile: "assets/presidential-stage-16bit.png",
     colors: ["#7c2727", "#2d5f47"]
   }
 ];
@@ -1050,8 +1060,10 @@ let matchPlayerData = presidents[3];
 let matchRivalData = presidents[1];
 let selectedLocationId = "grassy";
 let arcadeScreen = "intro";
-let pendingPlayerIndex = 3;
-let pendingRivalIndex = 1;
+let pendingPlayerIndex = null;
+let pendingRivalIndex = null;
+let characterCursorIndex = 3;
+let locationCursorIndex = 0;
 let selectionSlot = "player";
 const marilynCameoTiming = {
   walkFrames: 252,
@@ -1094,13 +1106,13 @@ const grassyKnollBystanders = [
 ];
 const motorcadeFinaleTiming = {
   driveInEnd: 150,
-  jumpStart: 205,
-  jumpEnd: 326,
-  driveOffStart: 334,
-  jfkShotStart: 524,
+  jumpStart: 229,
+  jumpEnd: 350,
+  driveOffStart: 358,
+  jfkShotStart: 548,
   jfkShotFrameTicks: 42,
   impactFrameTicks: 7,
-  duration: 844
+  duration: 868
 };
 const jfkDizzyRunCueFrames = 32;
 const jfkLossHitFrames = 28;
@@ -1271,8 +1283,14 @@ function setArcadeScreen(screen) {
   introPanel.classList.toggle("hidden", screen !== "intro");
   characterPanel.classList.toggle("hidden", screen !== "characters");
   locationPanel.classList.toggle("hidden", screen !== "locations");
-  if (screen === "characters") updateCharacterSelectionUi();
-  if (screen === "locations") updateLocationSelectionUi();
+  if (screen === "characters") {
+    if (selectionSlot === "player" && pendingPlayerIndex !== null) selectionSlot = "rival";
+    updateCharacterSelectionUi();
+  }
+  if (screen === "locations") {
+    locationCursorIndex = Math.max(0, locations.findIndex((location) => location.id === selectedLocationId));
+    updateLocationSelectionUi();
+  }
 }
 
 function renderCharacterGrid() {
@@ -1283,11 +1301,14 @@ function renderCharacterGrid() {
     card.className = "character-card";
     card.dataset.index = String(index);
     card.dataset.short = pres.short;
+    card.setAttribute("aria-label", `${pres.name}, ${pres.move}`);
     card.style.setProperty("--c1", pres.colors[0]);
     card.style.setProperty("--c2", pres.colors[1]);
     card.style.setProperty("--c3", pres.colors[2]);
     card.innerHTML = `
-      <div class="character-art"><span class="character-figure" aria-hidden="true"></span></div>
+      <div class="character-art">
+        <img src="${characterSelectTilePath(pres)}" alt="${pres.name}">
+      </div>
       <footer>
         <strong>${pres.name}</strong>
         <small>${pres.move}</small>
@@ -1298,53 +1319,107 @@ function renderCharacterGrid() {
   });
 }
 
+function characterSelectTilePath(pres) {
+  return `assets/character-select-tile-${pres.selectSlug}.png`;
+}
+
+function characterSelectBackgroundPath(pres) {
+  return `assets/character-select-bg-${pres.selectSlug}.png`;
+}
+
+function locationTilePath(location) {
+  return location.tile || "assets/presidential-stage-16bit.png";
+}
+
+function moveCharacterCursor(delta) {
+  characterCursorIndex = (characterCursorIndex + delta + presidents.length) % presidents.length;
+  updateCharacterSelectionUi();
+}
+
 function chooseCharacter(index) {
   if (selectionSlot === "player") {
     pendingPlayerIndex = index;
+    characterCursorIndex = pendingRivalIndex ?? (index + 1) % presidents.length;
     selectionSlot = "rival";
   } else {
     pendingRivalIndex = index;
-    selectionSlot = "player";
-    setArcadeScreen("locations");
+    selectionSlot = "ready";
   }
   updateCharacterSelectionUi();
 }
 
 function updateCharacterSelectionUi() {
-  selectionPrompt.textContent = selectionSlot === "player" ? "Select Player" : "Select Rival";
-  selectedPlayerName.textContent = presidents[pendingPlayerIndex]?.name || "---";
-  selectedRivalName.textContent = presidents[pendingRivalIndex]?.name || "---";
+  const cursorPresident = presidents[characterCursorIndex];
+  const cursorColumn = characterCursorIndex % 3;
+  const cursorRow = Math.floor(characterCursorIndex / 3);
+  characterPanel.style.setProperty("--character-select-bg", `url("${characterSelectBackgroundPath(cursorPresident)}")`);
+  characterPanel.style.setProperty("--character-select-pan-x", `${46 + cursorColumn * 4}%`);
+  characterPanel.style.setProperty("--character-select-pan-y", `${44 + cursorRow * 8}%`);
+  characterPanel.classList.toggle("is-ready", selectionSlot === "ready");
+  selectionPrompt.textContent =
+    selectionSlot === "player"
+      ? "Select Player"
+      : selectionSlot === "rival"
+        ? "Select Rival"
+        : "Press Enter";
   [...characterGrid.children].forEach((card) => {
     const index = Number(card.dataset.index);
+    card.classList.toggle("is-cursor", index === characterCursorIndex);
     card.classList.toggle("is-player", index === pendingPlayerIndex);
     card.classList.toggle("is-rival", index === pendingRivalIndex);
   });
 }
 
+function moveLocationCursor(delta) {
+  locationCursorIndex = (locationCursorIndex + delta + locations.length) % locations.length;
+  selectedLocationId = locations[locationCursorIndex].id;
+  updateLocationSelectionUi();
+}
+
+function chooseLocation(index) {
+  locationCursorIndex = index;
+  selectedLocationId = locations[index].id;
+  updateLocationSelectionUi();
+}
+
 function renderLocationGrid() {
   locationGrid.innerHTML = "";
-  locations.forEach((location) => {
+  locations.forEach((location, index) => {
     const card = document.createElement("button");
     card.type = "button";
     card.className = "location-card";
     card.dataset.location = location.id;
+    card.dataset.index = String(index);
+    card.setAttribute("aria-label", `${location.name}, ${location.subtitle}`);
     card.style.setProperty("--l1", location.colors[0]);
     card.style.setProperty("--l2", location.colors[1]);
     card.innerHTML = `
-      <span>${location.subtitle}</span>
-      <strong>${location.name}</strong>
-      <small>${location.image === "default" ? "Classic stage art" : "Special stage art"}</small>
+      <div class="location-art">
+        <img src="${locationTilePath(location)}" alt="${location.name}">
+      </div>
+      <footer>
+        <span>${location.subtitle}</span>
+        <strong>${location.name}</strong>
+        <small>${location.image === "default" ? "Temporary stage art" : "Special stage art"}</small>
+      </footer>
     `;
     card.addEventListener("click", () => {
-      selectedLocationId = location.id;
-      updateLocationSelectionUi();
+      if (selectedLocationId === location.id) launchSelectedMatch();
+      else chooseLocation(index);
     });
     locationGrid.append(card);
   });
 }
 
 function updateLocationSelectionUi() {
+  const location = locations[locationCursorIndex] || selectedLocation();
+  locationPanel.style.setProperty("--location-select-bg", `url("${locationTilePath(location)}")`);
+  locationPanel.style.setProperty("--location-select-pan-x", `${44 + (locationCursorIndex % 3) * 5}%`);
+  locationPanel.style.setProperty("--location-select-pan-y", `${45 + Math.floor(locationCursorIndex / 3) * 8}%`);
+  locationPrompt.textContent = "Press Enter";
   [...locationGrid.children].forEach((card) => {
+    const index = Number(card.dataset.index);
+    card.classList.toggle("is-cursor", index === locationCursorIndex);
     card.classList.toggle("is-selected", card.dataset.location === selectedLocationId);
   });
 }
@@ -1354,6 +1429,7 @@ function selectedLocation() {
 }
 
 function launchSelectedMatch() {
+  if (pendingPlayerIndex === null || pendingRivalIndex === null) return;
   playerSelect.value = String(pendingPlayerIndex);
   rivalSelect.value = String(pendingRivalIndex);
   updateMoveCards();
@@ -1363,16 +1439,68 @@ function launchSelectedMatch() {
 
 function handleArcadeFlowKey(event, wasDown) {
   if (arcadeScreen === "fight") return false;
+  if (arcadeScreen === "characters" && selectionSlot !== "ready" && !wasDown) {
+    if (event.code === "ArrowLeft" || event.code === "KeyA") {
+      moveCharacterCursor(-1);
+      return true;
+    }
+    if (event.code === "ArrowRight" || event.code === "KeyD") {
+      moveCharacterCursor(1);
+      return true;
+    }
+    if (event.code === "ArrowUp" || event.code === "KeyW") {
+      moveCharacterCursor(-3);
+      return true;
+    }
+    if (event.code === "ArrowDown" || event.code === "KeyS") {
+      moveCharacterCursor(3);
+      return true;
+    }
+  }
+  if (arcadeScreen === "locations" && !wasDown) {
+    if (event.code === "ArrowLeft" || event.code === "KeyA") {
+      moveLocationCursor(-1);
+      return true;
+    }
+    if (event.code === "ArrowRight" || event.code === "KeyD") {
+      moveLocationCursor(1);
+      return true;
+    }
+    if (event.code === "ArrowUp" || event.code === "KeyW") {
+      moveLocationCursor(-3);
+      return true;
+    }
+    if (event.code === "ArrowDown" || event.code === "KeyS") {
+      moveLocationCursor(3);
+      return true;
+    }
+  }
   if (event.code === "Enter" && !wasDown) {
     if (arcadeScreen === "intro") setArcadeScreen("characters");
+    else if (arcadeScreen === "characters") {
+      if (selectionSlot === "ready") setArcadeScreen("locations");
+      else chooseCharacter(characterCursorIndex);
+    }
     else if (arcadeScreen === "locations") launchSelectedMatch();
     return true;
   }
   if (arcadeScreen === "characters" && !wasDown && event.code === "Escape") {
-    setArcadeScreen("intro");
+    if (selectionSlot === "ready") {
+      pendingRivalIndex = null;
+      selectionSlot = "rival";
+      updateCharacterSelectionUi();
+    } else if (selectionSlot === "rival") {
+      pendingPlayerIndex = null;
+      pendingRivalIndex = null;
+      selectionSlot = "player";
+      updateCharacterSelectionUi();
+    } else {
+      setArcadeScreen("intro");
+    }
     return true;
   }
   if (arcadeScreen === "locations" && !wasDown && event.code === "Escape") {
+    pendingRivalIndex = null;
     selectionSlot = "rival";
     setArcadeScreen("characters");
     return true;
@@ -4716,7 +4844,6 @@ playerSelect.addEventListener("change", updateMoveCards);
 rivalSelect.addEventListener("change", updateMoveCards);
 startBtn.addEventListener("click", resetMatch);
 introStartBtn.addEventListener("click", () => setArcadeScreen("characters"));
-launchMatchBtn.addEventListener("click", launchSelectedMatch);
 
 populateSelects();
 buildArcadeFlow();
