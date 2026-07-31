@@ -15,7 +15,7 @@
     <meta name="twitter:title" content="POTUS COMBAT">
     <meta name="twitter:description" content="A tiny 16-bit arcade fighting-game prototype starring presidential combatants.">
     <meta name="twitter:image" content="https://raw.githubusercontent.com/flesentine/potuscombat/main/assets/imessage-preview.png">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=20260712b">
   </head>
   <body>
     <main class="cabinet">
@@ -62,13 +62,28 @@
               <span>Battlefield Directive</span>
               <strong id="locationPrompt">Select Location</strong>
             </div>
+            <div class="match-settings">
+              <div class="mode-picker" role="group" aria-label="Match mode">
+                <span>Match Mode</span>
+                <button type="button" data-mode="versus" aria-pressed="true">Versus</button>
+                <button type="button" data-mode="practice" aria-pressed="false">Practice</button>
+                <small>Press M to change</small>
+              </div>
+              <div class="difficulty-picker" role="group" aria-label="CPU difficulty">
+                <span>CPU Difficulty</span>
+                <button type="button" data-difficulty="easy">Easy</button>
+                <button type="button" data-difficulty="normal" aria-pressed="true">Normal</button>
+                <button type="button" data-difficulty="hard">Hard</button>
+                <small>Press V to change</small>
+              </div>
+            </div>
             <div id="locationGrid" class="location-grid"></div>
           </section>
         </div>
         <div id="overlay" class="overlay">
           <div>
             <span class="insert">Press Start</span>
-            <p>WASD move, J punch, K kick, I hat throw, L special, Space block</p>
+            <p>WASD move, double-tap A/D dash, J punch, K kick, I signature, L special, Space block, Esc/P pause</p>
           </div>
         </div>
       </section>
@@ -85,6 +100,6 @@
       </section>
     </main>
 
-    <script src="game.js"></script>
+    <script src="game.js?v=20260729f"></script>
   </body>
 </html>

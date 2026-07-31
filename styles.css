@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Rye&display=swap");
+
 :root {
   color-scheme: dark;
   --ink: #f8e7b0;
@@ -7,6 +9,7 @@
   --night: #111426;
   --panel: #1c2132;
   --line: #5b647c;
+  --arcade-display: "Rye", "Georgia", serif;
 }
 
 * {
@@ -65,6 +68,7 @@ p {
 }
 
 h1 {
+  font-family: var(--arcade-display);
   font-size: clamp(28px, 5vw, 58px);
   line-height: 0.92;
   color: #fff4c7;
@@ -119,7 +123,7 @@ button:active {
 
 .screen-wrap {
   position: relative;
-  margin: 24px 0;
+  margin: 0;
   border: 8px solid #080a10;
   background: #05070d;
   box-shadow: inset 0 0 0 4px #343a52, 0 18px 0 #090b12;
@@ -187,6 +191,7 @@ canvas {
 .select-header span,
 .location-card span {
   color: #f2bb38;
+  font-family: var(--arcade-display);
   font-weight: 900;
   letter-spacing: 2px;
   text-transform: uppercase;
@@ -194,12 +199,22 @@ canvas {
 }
 
 .intro-copy button {
-  min-width: 190px;
-  border-color: #fff4c7;
-  background: #ca3341;
+  min-width: 0;
+  min-height: 0;
+  border: 0;
+  background: transparent;
   color: #fff4c7;
-  text-shadow: 2px 2px 0 #090b12;
+  font-family: var(--arcade-display);
+  font-size: clamp(22px, 4.2vw, 46px);
+  letter-spacing: 2px;
+  box-shadow: none;
+  text-shadow: 3px 3px 0 #8b1c2b, 6px 6px 0 #090b12;
   animation: blink 0.85s steps(2, end) infinite;
+}
+
+.intro-copy button:active {
+  transform: none;
+  box-shadow: none;
 }
 
 .character-panel,
@@ -213,9 +228,65 @@ canvas {
 }
 
 .location-panel {
-  grid-template-rows: auto 1fr;
+  grid-template-rows: auto auto 1fr;
   isolation: isolate;
   background: #05070d;
+}
+
+.match-settings {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 0 18px;
+}
+
+.difficulty-picker,
+.mode-picker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.difficulty-picker > span,
+.difficulty-picker > small,
+.mode-picker > span,
+.mode-picker > small {
+  color: #fff4c7;
+  font-weight: 700;
+  text-transform: uppercase;
+  text-shadow: 2px 2px 0 #090b12;
+}
+
+.difficulty-picker > span,
+.mode-picker > span {
+  margin-right: 4px;
+  color: var(--gold);
+}
+
+.difficulty-picker button,
+.mode-picker button {
+  flex: 0 1 auto;
+  min-height: 30px;
+  padding: 0 12px;
+  border-width: 2px;
+  background: #343a52;
+  color: #fff4c7;
+  font-size: 12px;
+}
+
+.difficulty-picker button[aria-pressed="true"],
+.mode-picker button[aria-pressed="true"] {
+  background: var(--gold);
+  color: #171717;
+  box-shadow: inset 0 0 0 2px #fff4c7, inset -4px -4px 0 rgba(0, 0, 0, 0.25);
+}
+
+.difficulty-picker > small,
+.mode-picker > small {
+  margin-left: 4px;
+  font-size: 10px;
+  opacity: 0.72;
 }
 
 .character-panel {
@@ -244,7 +315,6 @@ canvas {
   opacity: 0.92;
   transform: scale(1.08) translate3d(-1.2%, -0.8%, 0);
   transition: background-image 180ms steps(2, end), background-position 260ms ease;
-  animation: characterBgDrift 8s ease-in-out infinite alternate;
   z-index: 0;
 }
 
@@ -291,7 +361,6 @@ canvas {
   opacity: 0.92;
   transform: scale(1.08) translate3d(-1.2%, -0.8%, 0);
   transition: background-image 180ms steps(2, end), background-position 260ms ease;
-  animation: characterBgDrift 8s ease-in-out infinite alternate;
   z-index: 0;
 }
 
@@ -317,29 +386,20 @@ canvas {
   z-index: 1;
 }
 
-@keyframes characterBgDrift {
-  from {
-    transform: scale(1.08) translate3d(-1.2%, -0.8%, 0);
-  }
-
-  to {
-    transform: scale(1.13) translate3d(1.2%, 0.9%, 0);
-  }
-}
-
 .select-header {
   display: flex;
   align-items: end;
   justify-content: space-between;
   gap: 16px;
-  border: 4px solid #080a10;
-  box-shadow: inset 0 0 0 3px #5b647c;
-  background: #1c2132;
-  padding: 10px 14px;
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+  padding: 4px 6px;
 }
 
 .select-header strong {
   color: #fff4c7;
+  font-family: var(--arcade-display);
   font-size: clamp(18px, 3vw, 34px);
   text-transform: uppercase;
   text-shadow: 3px 3px 0 #8b1c2b, 6px 6px 0 #090b12;
@@ -347,11 +407,11 @@ canvas {
 
 .character-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(8, minmax(0, 1fr));
   align-self: start;
   justify-self: center;
-  width: min(700px, 82%);
-  gap: 10px;
+  width: min(920px, 91%);
+  gap: 9px;
   min-height: 0;
 }
 
@@ -369,6 +429,7 @@ canvas {
 
 .character-card {
   display: grid;
+  grid-column: span 2;
   aspect-ratio: 540 / 486;
   min-width: 0;
   min-height: 0;
@@ -381,6 +442,12 @@ canvas {
   text-align: left;
 }
 
+/* Seven fighters fill a balanced 4 + 3 arcade roster instead of leaving a
+   lone card hanging off the bottom-left edge. */
+.character-card:nth-child(5) {
+  grid-column: 2 / span 2;
+}
+
 .character-card::before {
   content: none;
 }
@@ -388,6 +455,7 @@ canvas {
 .character-art {
   position: absolute;
   inset: 0;
+  z-index: 1;
 }
 
 .character-art img {
@@ -410,6 +478,7 @@ canvas {
 .character-card strong,
 .location-card strong {
   color: #fff;
+  font-family: var(--arcade-display);
   font-size: clamp(12px, 1.35vw, 18px);
   text-transform: uppercase;
 }
@@ -457,10 +526,12 @@ canvas {
   z-index: 2;
   pointer-events: none;
   color: #fff4c7;
+  font-family: var(--arcade-display);
   font-size: clamp(18px, 2.8vw, 34px);
-  font-weight: 900;
+  font-weight: 400;
+  letter-spacing: 1px;
   line-height: 1;
-  text-shadow: 3px 3px 0 #090b12;
+  text-shadow: 3px 3px 0 #8b1c2b, 6px 6px 0 #090b12;
 }
 
 .character-card.is-player::after {
@@ -564,6 +635,7 @@ canvas {
 .insert {
   display: block;
   color: #fff6bd;
+  font-family: var(--arcade-display);
   font-size: clamp(30px, 6vw, 72px);
   font-weight: 900;
   text-shadow: 4px 4px 0 var(--red), 8px 8px 0 #101522;
@@ -594,6 +666,7 @@ canvas {
 
 .move-card h2 {
   color: #ffffff;
+  font-family: var(--arcade-display);
   font-size: clamp(18px, 3vw, 30px);
 }
 
@@ -601,6 +674,11 @@ canvas {
   margin-top: 4px;
   color: var(--gold);
   font-weight: 700;
+}
+
+.topbar,
+.move-card {
+  display: none;
 }
 
 @keyframes blink {
@@ -643,8 +721,37 @@ canvas {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .character-card,
+  .character-card:nth-child(5) {
+    grid-column: auto;
+  }
+
   .select-header {
     align-items: stretch;
     grid-template-columns: 1fr;
+  }
+
+  .match-settings {
+    gap: 6px;
+    padding: 0 6px;
+  }
+
+  .difficulty-picker,
+  .mode-picker {
+    gap: 4px;
+  }
+
+  .difficulty-picker > span,
+  .difficulty-picker > small,
+  .mode-picker > span,
+  .mode-picker > small {
+    display: none;
+  }
+
+  .difficulty-picker button,
+  .mode-picker button {
+    min-height: 26px;
+    padding: 0 8px;
+    font-size: 10px;
   }
 }

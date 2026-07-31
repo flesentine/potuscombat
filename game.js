@@ -17,10 +17,55 @@ const characterGrid = document.getElementById("characterGrid");
 const locationGrid = document.getElementById("locationGrid");
 const selectionPrompt = document.getElementById("selectionPrompt");
 const locationPrompt = document.getElementById("locationPrompt");
+const difficultyButtons = [...document.querySelectorAll("[data-difficulty]")];
+const modeButtons = [...document.querySelectorAll("[data-mode]")];
 const p1Name = document.getElementById("p1Name");
 const p2Name = document.getElementById("p2Name");
 const p1Move = document.getElementById("p1Move");
 const p2Move = document.getElementById("p2Move");
+
+let audioCtx = null;
+let introThemePlayed = false;
+let introMidiLoad = null;
+let introMidiSequence = null;
+let introThemeTimer = null;
+let introAudioCleanupTimer = null;
+const introAudioNodes = [];
+const introMidiUrl = "assets/hail-to-the-chief-public-domain.mid?v=20260708a";
+const ym2151Tuning = {
+  masterGain: 0.28,
+  tempo: 118,
+  leadModRatio: 2.01,
+  leadModIndex: 48,
+  bassModRatio: 1.5,
+  bassModIndex: 26
+};
+const yamahaFmLibrary = {
+  piano: { carrier: "sine", modulator: "sine", modRatio: 2.01, modIndex: 52, filter: 4200, q: 1.1, level: 0.09, attack: 0.006, release: 0.18, maxDuration: 2.2 },
+  brass: { carrier: "sawtooth", modulator: "sine", modRatio: 1.01, modIndex: 34, filter: 3200, q: 0.8, level: 0.055, attack: 0.025, release: 0.2, maxDuration: 2.5 },
+  guitar: { carrier: "triangle", modulator: "sine", modRatio: 3.01, modIndex: 42, filter: 3600, q: 1.3, level: 0.065, attack: 0.003, release: 0.14, maxDuration: 1.5 },
+  xylophone: { carrier: "sine", modulator: "square", modRatio: 5.02, modIndex: 70, filter: 6200, q: 1.6, level: 0.07, attack: 0.002, release: 0.09, maxDuration: 0.8 },
+  horn: { carrier: "sine", modulator: "sine", modRatio: 1.5, modIndex: 28, filter: 3000, q: 0.9, level: 0.06, attack: 0.018, release: 0.22, maxDuration: 2.8 },
+  bass: { carrier: "triangle", modulator: "sine", modRatio: 1.5, modIndex: 24, filter: 1200, q: 0.7, level: 0.075, attack: 0.01, release: 0.22, maxDuration: 2.2 }
+};
+const noteToMidi = {
+  C3: 48, D3: 50, E3: 52, F3: 53, G3: 55, A3: 57, B3: 59,
+  C4: 60, D4: 62, E4: 64, F4: 65, G4: 67, A4: 69, B4: 71,
+  C5: 72, D5: 74, E5: 76, F5: 77, G5: 79, A5: 81, B5: 83,
+  C6: 84
+};
+const hailToChiefFallbackMelody = [
+  ["G4", 0.5], ["C5", 0.5], ["E5", 0.5], ["G5", 0.75], ["E5", 0.25], ["C5", 0.5], ["D5", 0.5], ["E5", 1],
+  ["F5", 0.5], ["E5", 0.5], ["D5", 0.5], ["C5", 0.75], ["D5", 0.25], ["E5", 0.5], ["G5", 1],
+  ["C6", 0.75], ["B5", 0.25], ["A5", 0.5], ["G5", 0.5], ["E5", 0.5], ["C5", 0.5], ["D5", 0.5], ["E5", 1],
+  ["G4", 0.5], ["C5", 0.5], ["E5", 0.5], ["G5", 0.75], ["E5", 0.25], ["C5", 0.5], ["D5", 0.5], ["C5", 1.5]
+];
+const hailToChiefBassPattern = [
+  ["C3", 2], ["G3", 2], ["C3", 2], ["G3", 2],
+  ["F3", 2], ["C3", 2], ["G3", 2], ["G3", 2],
+  ["C3", 2], ["G3", 2], ["A3", 2], ["E3", 2],
+  ["F3", 2], ["C3", 2], ["G3", 2], ["C3", 2]
+];
 
 const W = canvas.width;
 const H = canvas.height;
@@ -49,11 +94,17 @@ const timing = {
   maxFrameCatchupMs: 90,
   roundDurationFrames: 99 * 120,
   jumpBufferFrames: 10,
+  combatInputBufferFrames: 10,
+  dashInputWindowFrames: 24,
   // The round clock starts after the intro banner has had a short arcade beat.
   roundIntroFreezeFrames: 100
 };
 const damageTuning = {
   blockMultiplier: 0.28,
+  guardDamageMultiplier: 1.8,
+  specialGuardDamageMultiplier: 1.35,
+  guardRegenDelayFrames: 70,
+  guardBreakStun: 42,
   hitstun: 22,
   blockstun: 10,
   pushback: 8,
@@ -64,6 +115,11 @@ const damageTuning = {
   cleanShake: 9,
   blockedShake: 3,
   specialShakeBonus: 3
+};
+const practiceTuning = {
+  recoveryDelayFrames: 150,
+  healthRecoveryPerFrame: 0.3,
+  guardRecoveryPerFrame: 0.75
 };
 const AI_DIFFICULTY = {
   easy: {
@@ -85,15 +141,43 @@ const AI_DIFFICULTY = {
 const AI_PERSONALITY = {
   Washington: {
     aggression: 0.94, defense: 1.18, punish: 1.2, jump: 0.42, special: 0.7,
-    preferredRange: 112, centerBias: 1.28, poke: "crouchKick"
+    preferredRange: 112, centerBias: 1.28, poke: "crouchKick", signatureBias: 1, dashBias: 0.9,
+    signatureRange: [55, 145], specialRange: [70, 200]
+  },
+  Lincoln: {
+    aggression: 0.78, defense: 1.12, punish: 1.25, jump: 0.5, special: 1.35,
+    preferredRange: 170, centerBias: 1.1, poke: "punch", signatureBias: 1.2, dashBias: 0.75,
+    signatureRange: [155, 390], specialRange: [0, 115]
   },
   "T. Roosevelt": {
     aggression: 1.1, defense: 0.96, punish: 1.06, jump: 0.72, special: 1.25,
-    preferredRange: 94, centerBias: 1.04, poke: "crouchKick"
+    preferredRange: 94, centerBias: 1.04, poke: "crouchKick", signatureBias: 1.15, dashBias: 1.35,
+    signatureRange: [45, 120], specialRange: [70, 190]
+  },
+  Kennedy: {
+    aggression: 0.82, defense: 0.85, punish: 0.95, jump: 1.35, special: 1.45,
+    preferredRange: 220, centerBias: 0.9, poke: "crouchKick", signatureBias: 1.25, dashBias: 1.2,
+    signatureRange: [45, 145], specialRange: [150, 380]
+  },
+  Obama: {
+    aggression: 1.05, defense: 1, punish: 1.15, jump: 0.9, special: 1.2,
+    preferredRange: 100, centerBias: 1.1, poke: "crouchPunch", signatureBias: 1.2, dashBias: 1.1,
+    signatureRange: [45, 120], specialRange: [50, 150]
+  },
+  Grant: {
+    aggression: 0.82, defense: 1.15, punish: 1.25, jump: 0.35, special: 1.35,
+    preferredRange: 80, centerBias: 1.2, poke: "kick", signatureBias: 1.35, dashBias: 0.65,
+    signatureRange: [0, 85], specialRange: [150, 380]
+  },
+  Trump: {
+    aggression: 1.08, defense: 0.88, punish: 1.05, jump: 0.8, special: 1.15,
+    preferredRange: 86, centerBias: 0.92, poke: "crouchPunch", signatureBias: 1.3,
+    signatureRange: [0, 82], specialRange: [50, 170], dashBias: 1.15
   },
   default: {
     aggression: 1, defense: 1, punish: 1, jump: 1, special: 1,
-    preferredRange: 104, centerBias: 1, poke: "kick"
+    preferredRange: 104, centerBias: 1, poke: "kick", signatureBias: 1,
+    signatureRange: [0, 150], specialRange: [130, 330], dashBias: 1
   }
 };
 const AI_STATES = {
@@ -169,6 +253,8 @@ const fighterShadowSprite = new Image();
 fighterShadowSprite.src = "assets/fighter-shadow.png?v=20260701a";
 const impactSparkSprite = new Image();
 impactSparkSprite.src = "assets/impact-spark.png";
+const hudChromeSprite = new Image();
+hudChromeSprite.src = "assets/hud-chrome-generated-alpha.png?v=20260707a";
 const umbrellaManSprite = new Image();
 umbrellaManSprite.src = "assets/umbrella-man-open-sheet-alpha.png?v=20260703a";
 const cameraManSprite = new Image();
@@ -338,6 +424,101 @@ const teddyVictorySprites = [1, 2].map((frame) => {
   image.src = `assets/teddy-victory-${frame}.png`;
   return image;
 });
+const grantSprite = new Image();
+grantSprite.src = "assets/grant-idle-generated-alpha.png?v=20260707a";
+const grantPunchSprite = new Image();
+grantPunchSprite.src = "assets/grant-punch-generated-alpha.png?v=20260707a";
+const grantKickSprite = new Image();
+grantKickSprite.src = "assets/grant-kick-generated-alpha.png?v=20260707a";
+const grantHitSprite = new Image();
+grantHitSprite.src = "assets/grant-hit-generated-alpha.png?v=20260707a";
+const grantCrouchSprite = new Image();
+grantCrouchSprite.src = "assets/grant-crouch-generated-alpha.png?v=20260707a";
+const grantCrouchPunchSprite = new Image();
+grantCrouchPunchSprite.src = "assets/grant-crouch-punch-generated-alpha.png?v=20260707a";
+const grantCrouchKickSprite = new Image();
+grantCrouchKickSprite.src = "assets/grant-crouch-kick-generated-alpha.png?v=20260707a";
+const grantCrouchBlockSprite = new Image();
+grantCrouchBlockSprite.src = "assets/grant-crouch-block-generated-alpha.png?v=20260707a";
+const grantBlockSprite = new Image();
+grantBlockSprite.src = "assets/grant-block-generated-alpha.png?v=20260707a";
+const grantJumpSprite = new Image();
+grantJumpSprite.src = "assets/grant-jump-generated-alpha.png?v=20260707a";
+const grantJumpKickSprite = new Image();
+grantJumpKickSprite.src = "assets/grant-jump-kick-generated-alpha.png?v=20260707a";
+const grantKnockdownSprite = new Image();
+grantKnockdownSprite.src = "assets/grant-knockdown-generated-alpha.png?v=20260707a";
+const grantKnockdownAirSprite = new Image();
+grantKnockdownAirSprite.src = "assets/grant-knockdown-air-generated-alpha.png?v=20260707a";
+const grantKnockdownLandSprite = new Image();
+grantKnockdownLandSprite.src = "assets/grant-knockdown-land-generated-alpha.png?v=20260707a";
+const grantVictorySprite = new Image();
+grantVictorySprite.src = "assets/grant-victory-generated-alpha.png?v=20260707a";
+const grantVictory2Sprite = new Image();
+grantVictory2Sprite.src = "assets/grant-victory-2-generated-alpha.png?v=20260707a";
+const grantSpecialSprite = new Image();
+grantSpecialSprite.src = "assets/grant-special-generated-alpha.png?v=20260707a";
+const grantSpecialRecoverySprite = new Image();
+grantSpecialRecoverySprite.src = "assets/grant-special-recovery-generated-alpha.png?v=20260707a";
+const grantCannonProjectileSprite = new Image();
+grantCannonProjectileSprite.src = "assets/grant-cannon-projectile-generated-alpha.png?v=20260707a";
+const grantCannonImpactSprite = new Image();
+grantCannonImpactSprite.src = "assets/grant-cannon-impact-generated-alpha.png?v=20260707a";
+const grantBlockHitSprite = new Image();
+grantBlockHitSprite.src = "assets/grant-block-hit-generated-alpha.png?v=20260707a";
+const grantLowHitSprite = new Image();
+grantLowHitSprite.src = "assets/grant-low-hit-generated-alpha.png?v=20260707a";
+const grantIntroSprite = new Image();
+grantIntroSprite.src = "assets/grant-intro-generated-alpha.png?v=20260707a";
+const grantGrappleSprite = new Image();
+grantGrappleSprite.src = "assets/grant-grapple-generated-alpha.png?v=20260707a";
+const grantDizzySprite = new Image();
+grantDizzySprite.src = "assets/grant-dizzy-generated-alpha.png?v=20260707a";
+const grantWalkSprites = [1, 2, 3, 4, 5].map((frame) => {
+  const image = new Image();
+  image.src = `assets/grant-walk-${frame}-generated-alpha.png?v=20260707a`;
+  return image;
+});
+const grantBackwalkSprites = [1, 2, 3, 4, 5].map((frame) => {
+  const image = new Image();
+  image.src = `assets/grant-backwalk-${frame}-generated-alpha.png?v=20260707a`;
+  return image;
+});
+const obamaSprite = new Image();
+obamaSprite.src = "assets/obama-idle-generated-alpha.png?v=20260708a";
+const obamaPunchSprite = new Image();
+obamaPunchSprite.src = "assets/obama-punch-generated-alpha.png?v=20260708a";
+const obamaKickSprite = new Image();
+obamaKickSprite.src = "assets/obama-kick-generated-alpha.png?v=20260708a";
+const obamaHitSprite = new Image();
+obamaHitSprite.src = "assets/obama-hit-generated-alpha.png?v=20260708a";
+const obamaLowHitSprite = new Image();
+obamaLowHitSprite.src = "assets/obama-low-hit-generated-alpha.png?v=20260708a";
+const obamaCrouchSprite = new Image();
+obamaCrouchSprite.src = "assets/obama-crouch-generated-alpha.png?v=20260708a";
+const obamaCrouchBlockSprite = new Image();
+obamaCrouchBlockSprite.src = "assets/obama-crouch-block-generated-alpha.png?v=20260708a";
+const obamaCrouchPunchSprite = new Image();
+obamaCrouchPunchSprite.src = "assets/obama-crouch-punch-generated-alpha.png?v=20260708a";
+const obamaCrouchKickSprite = new Image();
+obamaCrouchKickSprite.src = "assets/obama-crouch-kick-generated-alpha.png?v=20260708a";
+const obamaBlockSprite = new Image();
+obamaBlockSprite.src = "assets/obama-block-generated-alpha.png?v=20260708a";
+const obamaJumpSprite = new Image();
+obamaJumpSprite.src = "assets/obama-jump-generated-alpha.png?v=20260708a";
+const obamaJumpKickSprite = new Image();
+obamaJumpKickSprite.src = "assets/obama-jump-kick-generated-alpha.png?v=20260708a";
+const obamaWalkForwardSprites = [1, 2, 3, 4, 5].map((frame) => {
+  const image = new Image();
+  image.src = `assets/obama-walk-forward-${frame}-generated-alpha.png?v=20260708b`;
+  return image;
+});
+const trumpSpriteSheet = new Image();
+trumpSpriteSheet.src = "assets/trump-fighter-sheet-v2-generated-alpha.png?v=20260710c";
+const trumpSupplementalSprite = new Image();
+trumpSupplementalSprite.src = "assets/trump-supplemental-generated-alpha.png?v=20260711a";
+const trumpWalkCycleSprite = new Image();
+trumpWalkCycleSprite.src = "assets/trump-walk-cycle-generated-alpha.png?v=20260712a";
 const criticalImages = [
   lincolnSprite,
   lincolnPunchSprite,
@@ -391,9 +572,52 @@ const criticalImages = [
   ...teddyBackwalkSprites,
   ...teddyJumpSprites,
   ...teddyKnockdownSprites,
-  ...teddyVictorySprites
+  ...teddyVictorySprites,
+  grantSprite,
+  grantPunchSprite,
+  grantKickSprite,
+  grantHitSprite,
+  grantCrouchSprite,
+  grantCrouchPunchSprite,
+  grantCrouchKickSprite,
+  grantCrouchBlockSprite,
+  grantBlockSprite,
+  grantJumpSprite,
+  grantJumpKickSprite,
+  grantKnockdownSprite,
+  grantKnockdownAirSprite,
+  grantKnockdownLandSprite,
+  grantVictorySprite,
+  grantVictory2Sprite,
+  grantSpecialSprite,
+  grantSpecialRecoverySprite,
+  grantCannonProjectileSprite,
+  grantCannonImpactSprite,
+  grantBlockHitSprite,
+  grantLowHitSprite,
+  grantIntroSprite,
+  grantGrappleSprite,
+  grantDizzySprite,
+  ...grantWalkSprites,
+  ...grantBackwalkSprites,
+  obamaSprite,
+  obamaPunchSprite,
+  obamaKickSprite,
+  obamaHitSprite,
+  obamaLowHitSprite,
+  obamaCrouchSprite,
+  obamaCrouchBlockSprite,
+  obamaCrouchPunchSprite,
+  obamaCrouchKickSprite,
+  obamaBlockSprite,
+  obamaJumpSprite,
+  obamaJumpKickSprite,
+  ...obamaWalkForwardSprites,
+  trumpSpriteSheet,
+  trumpSupplementalSprite,
+  trumpWalkCycleSprite
 ];
-const optionalImages = [stageImage, fordTheatreStageImage, grassyKnollStageImage, asaTrenchardPlaySprite, mrsMountchessingtonPlaySprite, augustaPlaySprite, florencePlaySprite, johnWilkesBoothFinaleSprite, fordAudienceSprite, bloodPoolSprite, fighterShadowSprite, impactSparkSprite, umbrellaManSprite, cameraManSprite, grassyKnollBystandersSprite, kennedyMotorcadeSprite, kennedyMotorcadeJfkSprite, kennedyMotorcadeJfkShotSprite, jfkMotorcadeImpactBurstSprite, jfkBackToMotorcadeSprite, jfkJumpIntoMotorcadeSprite, jfkDizzyLossSprite, marilynWalkSprite, marilynJfkKissSprite];
+const optionalImages = [stageImage, fordTheatreStageImage, grassyKnollStageImage, asaTrenchardPlaySprite, mrsMountchessingtonPlaySprite, augustaPlaySprite, florencePlaySprite, johnWilkesBoothFinaleSprite, fordAudienceSprite, bloodPoolSprite, fighterShadowSprite, impactSparkSprite, hudChromeSprite, umbrellaManSprite, cameraManSprite, grassyKnollBystandersSprite, kennedyMotorcadeSprite, kennedyMotorcadeJfkSprite, kennedyMotorcadeJfkShotSprite, jfkMotorcadeImpactBurstSprite, jfkBackToMotorcadeSprite, jfkJumpIntoMotorcadeSprite, jfkDizzyLossSprite, marilynWalkSprite, marilynJfkKissSprite];
 const allImages = [...criticalImages, ...optionalImages];
 
 allImages.forEach((image) => {
@@ -502,6 +726,359 @@ const washingtonKnockdownFrames = [
   { image: washingtonKnockdownSprites[3], crop: { x: 39, y: 367, w: 380, h: 164 }, height: 99, offsetX: 4, lift: 0 },
   { image: washingtonKnockdownSprites[4], crop: { x: 32, y: 441, w: 400, h: 90 }, height: 56, offsetX: 0, lift: 0 }
 ];
+const grantFrames = {
+  idle: {
+    image: grantSprite,
+    crop: { x: 250, y: 54, w: 673, h: 1176 },
+    height: 238,
+    offsetX: 0,
+    shadowWidth: 118
+  },
+  punch: {
+    image: grantPunchSprite,
+    crop: { x: 191, y: 60, w: 909, h: 1136 },
+    height: 238,
+    offsetX: 20,
+    shadowWidth: 126
+  },
+  kick: {
+    image: grantKickSprite,
+    crop: { x: 72, y: 100, w: 1031, h: 1072 },
+    height: 238,
+    offsetX: 44,
+    shadowWidth: 142
+  },
+  hit: {
+    image: grantHitSprite,
+    crop: { x: 241, y: 75, w: 757, h: 1108 },
+    height: 238,
+    offsetX: 0,
+    shadowWidth: 118
+  },
+  crouch: {
+    image: grantCrouchSprite,
+    crop: { x: 265, y: 80, w: 780, h: 926 },
+    height: 156,
+    offsetX: 0,
+    shadowWidth: 122
+  },
+  crouchPunch: {
+    image: grantCrouchPunchSprite,
+    crop: { x: 97, y: 68, w: 1280, h: 853 },
+    height: 156,
+    offsetX: 38,
+    shadowWidth: 132
+  },
+  crouchKick: {
+    image: grantCrouchKickSprite,
+    crop: { x: 122, y: 108, w: 1226, h: 828 },
+    height: 156,
+    offsetX: 44,
+    shadowWidth: 154
+  },
+  crouchBlock: {
+    image: grantCrouchBlockSprite,
+    crop: { x: 222, y: 79, w: 876, h: 874 },
+    height: 156,
+    offsetX: -6,
+    shadowWidth: 126
+  },
+  block: {
+    image: grantBlockSprite,
+    crop: { x: 224, y: 65, w: 715, h: 1162 },
+    height: 238,
+    offsetX: 0,
+    shadowWidth: 112
+  },
+  jump: {
+    image: grantJumpSprite,
+    crop: { x: 133, y: 78, w: 757, h: 1040 },
+    height: 238,
+    offsetX: 0,
+    shadowWidth: 100
+  },
+  jumpKick: {
+    image: grantJumpKickSprite,
+    crop: { x: 80, y: 108, w: 1134, h: 796 },
+    height: 196,
+    anchorX: 600,
+    offsetX: 42,
+    lift: 18,
+    shadowWidth: 132
+  },
+  knockdown: {
+    image: grantKnockdownSprite,
+    crop: { x: 148, y: 246, w: 1387, h: 473 },
+    height: 78,
+    offsetX: 8,
+    shadowWidth: 150
+  },
+  knockdownAir: {
+    image: grantKnockdownAirSprite,
+    crop: { x: 136, y: 116, w: 1114, h: 865 },
+    height: 156,
+    offsetX: 8,
+    lift: 28,
+    shadowWidth: 130
+  },
+  knockdownLand: {
+    image: grantKnockdownLandSprite,
+    crop: { x: 191, y: 139, w: 1459, h: 592 },
+    height: 96,
+    offsetX: 22,
+    shadowWidth: 164
+  },
+  victory: {
+    image: grantVictorySprite,
+    crop: { x: 240, y: 40, w: 628, h: 1206 },
+    height: 238,
+    offsetX: -4,
+    shadowWidth: 112
+  },
+  victory2: {
+    image: grantVictory2Sprite,
+    crop: { x: 134, y: 37, w: 748, h: 1415 },
+    height: 279,
+    offsetX: 0,
+    shadowWidth: 118
+  },
+  special: {
+    image: grantSpecialSprite,
+    crop: { x: 102, y: 88, w: 983, h: 1111 },
+    height: 238,
+    offsetX: 14,
+    shadowWidth: 126
+  },
+  specialRecovery: {
+    image: grantSpecialRecoverySprite,
+    crop: { x: 101, y: 136, w: 877, h: 1231 },
+    height: 238,
+    offsetX: -8,
+    shadowWidth: 124
+  },
+  blockHit: {
+    image: grantBlockHitSprite,
+    crop: { x: 95, y: 104, w: 859, h: 1256 },
+    height: 238,
+    offsetX: -4,
+    shadowWidth: 122
+  },
+  lowHit: {
+    image: grantLowHitSprite,
+    crop: { x: 125, y: 252, w: 772, h: 995 },
+    height: 178,
+    offsetX: 2,
+    shadowWidth: 122
+  },
+  intro: {
+    image: grantIntroSprite,
+    crop: { x: 140, y: 48, w: 751, h: 1413 },
+    height: 238,
+    offsetX: 0,
+    shadowWidth: 116
+  },
+  grapple: {
+    image: grantGrappleSprite,
+    crop: { x: 66, y: 55, w: 1009, h: 1169 },
+    height: 238,
+    offsetX: 20,
+    shadowWidth: 132
+  },
+  dizzy: {
+    image: grantDizzySprite,
+    crop: { x: 131, y: 106, w: 746, h: 1302 },
+    height: 238,
+    offsetX: -2,
+    shadowWidth: 114
+  }
+};
+const grantVictoryFrames = [grantFrames.victory, grantFrames.victory2];
+const grantWalkFrames = [
+  { image: grantWalkSprites[0], crop: { x: 136, y: 54, w: 802, h: 1139 }, height: 238, offsetX: 2, shadowWidth: 120 },
+  { image: grantWalkSprites[1], crop: { x: 195, y: 57, w: 662, h: 1179 }, height: 238, offsetX: 0, shadowWidth: 108 },
+  { image: grantWalkSprites[2], crop: { x: 155, y: 79, w: 744, h: 1098 }, height: 238, offsetX: 0, shadowWidth: 118 },
+  { image: grantWalkSprites[3], crop: { x: 147, y: 68, w: 767, h: 1098 }, height: 238, offsetX: 0, shadowWidth: 118 },
+  { image: grantWalkSprites[4], crop: { x: 225, y: 58, w: 625, h: 1128 }, height: 238, offsetX: -2, shadowWidth: 106 }
+];
+const grantWalkCycle = [0, 1, 2, 3, 4];
+const grantBackwalkFrames = [
+  { image: grantBackwalkSprites[0], crop: { x: 272, y: 69, w: 645, h: 1177 }, height: 238, offsetX: -2, shadowWidth: 106 },
+  { image: grantBackwalkSprites[1], crop: { x: 186, y: 65, w: 664, h: 1147 }, height: 238, offsetX: 0, shadowWidth: 108 },
+  { image: grantBackwalkSprites[2], crop: { x: 221, y: 62, w: 654, h: 1152 }, height: 238, offsetX: 0, shadowWidth: 108 },
+  { image: grantBackwalkSprites[3], crop: { x: 131, y: 63, w: 786, h: 1138 }, height: 238, offsetX: 2, shadowWidth: 120 },
+  { image: grantBackwalkSprites[4], crop: { x: 206, y: 70, w: 778, h: 1138 }, height: 238, offsetX: 0, shadowWidth: 118 }
+];
+const grantBackwalkCycle = [0, 1, 2, 3, 4];
+const grantCannonProjectileFrame = {
+  image: grantCannonProjectileSprite,
+  crop: { x: 191, y: 381, w: 828, h: 453 },
+  height: 54,
+  anchorX: 414,
+  anchorY: 226
+};
+const grantCannonImpactFrame = {
+  image: grantCannonImpactSprite,
+  crop: { x: 106, y: 142, w: 1046, h: 948 },
+  height: 92,
+  anchorX: 523,
+  anchorY: 474
+};
+const obamaFrames = {
+  idle: {
+    image: obamaSprite,
+    crop: { x: 333, y: 150, w: 462, h: 1000 },
+    height: 238,
+    offsetX: 0,
+    shadowWidth: 104
+  },
+  punch: {
+    image: obamaPunchSprite,
+    crop: { x: 258, y: 201, w: 672, h: 916 },
+    height: 238,
+    offsetX: 24,
+    shadowWidth: 118
+  },
+  kick: {
+    image: obamaKickSprite,
+    crop: { x: 232, y: 330, w: 739, h: 754 },
+    height: 238,
+    offsetX: 42,
+    shadowWidth: 132
+  },
+  hit: {
+    image: obamaHitSprite,
+    crop: { x: 301, y: 229, w: 608, h: 893 },
+    height: 238,
+    offsetX: -2,
+    shadowWidth: 112
+  },
+  lowHit: {
+    image: obamaLowHitSprite,
+    crop: { x: 301, y: 261, w: 674, h: 695 },
+    height: 165,
+    offsetX: 10,
+    shadowWidth: 134
+  },
+  crouch: {
+    image: obamaCrouchSprite,
+    crop: { x: 285, y: 280, w: 586, h: 746 },
+    height: 178,
+    offsetX: 0,
+    shadowWidth: 124
+  },
+  crouchBlock: {
+    image: obamaCrouchBlockSprite,
+    crop: { x: 327, y: 252, w: 570, h: 718 },
+    height: 171,
+    offsetX: 0,
+    shadowWidth: 124
+  },
+  crouchPunch: {
+    image: obamaCrouchPunchSprite,
+    crop: { x: 83, y: 294, w: 877, h: 732 },
+    height: 174,
+    offsetX: 34,
+    shadowWidth: 132
+  },
+  crouchKick: {
+    image: obamaCrouchKickSprite,
+    crop: { x: 149, y: 277, w: 957, h: 651 },
+    height: 155,
+    offsetX: 44,
+    shadowWidth: 154
+  },
+  block: {
+    image: obamaBlockSprite,
+    crop: { x: 321, y: 204, w: 521, h: 905 },
+    height: 238,
+    offsetX: -4,
+    shadowWidth: 108
+  },
+  jump: {
+    image: obamaJumpSprite,
+    crop: { x: 405, y: 145, w: 427, h: 829 },
+    height: 197,
+    offsetX: 0,
+    shadowWidth: 96
+  },
+  jumpKick: {
+    image: obamaJumpKickSprite,
+    crop: { x: 121, y: 173, w: 996, h: 675 },
+    height: 161,
+    anchorX: 430,
+    offsetX: 34,
+    lift: 18,
+    shadowWidth: 132
+  }
+};
+const obamaWalkForwardFrames = [
+  { image: obamaWalkForwardSprites[0], crop: { x: 265, y: 85, w: 647, h: 1049 }, height: 238, offsetX: 0, shadowWidth: 132 },
+  { image: obamaWalkForwardSprites[1], crop: { x: 277, y: 90, w: 605, h: 1040 }, height: 238, offsetX: 0, shadowWidth: 126 },
+  { image: obamaWalkForwardSprites[2], crop: { x: 378, y: 86, w: 401, h: 1047 }, height: 238, offsetX: 0, shadowWidth: 100 },
+  { image: obamaWalkForwardSprites[3], crop: { x: 324, y: 86, w: 564, h: 1043 }, height: 238, offsetX: 0, shadowWidth: 122 },
+  { image: obamaWalkForwardSprites[4], crop: { x: 320, y: 88, w: 602, h: 1043 }, height: 238, offsetX: 0, shadowWidth: 128 }
+];
+const obamaWalkForwardCycle = [0, 1, 2, 3, 4];
+const trumpPose = (x, y, w, h, options = {}) => ({
+  image: trumpSpriteSheet,
+  crop: { x, y, w, h },
+  height: options.height || Math.round(h * 0.862),
+  anchorY: h - (options.bottomPad ?? 8),
+  offsetX: options.offsetX || 0,
+  shadowWidth: options.shadowWidth || 112,
+  flipX: options.flipX || false
+});
+const trumpFrames = {
+  idle: trumpPose(119, 29, 202, 302),
+  walk: trumpPose(488, 31, 219, 301),
+  backwalk: trumpPose(830, 38, 209, 292),
+  jump: trumpPose(1147, 10, 209, 271),
+  punch: trumpPose(101, 374, 316, 277, { offsetX: 26, shadowWidth: 128 }),
+  kick: trumpPose(446, 351, 277, 303, { offsetX: 30, shadowWidth: 132 }),
+  block: trumpPose(811, 360, 230, 291),
+  hit: trumpPose(1122, 352, 259, 295, { bottomPad: 2, flipX: true }),
+  crouch: trumpPose(106, 740, 192, 229, { shadowWidth: 120 }),
+  crouchPunch: trumpPose(409, 736, 327, 230, { offsetX: 24, shadowWidth: 132 }),
+  crouchKick: trumpPose(803, 738, 292, 231, { offsetX: 28, shadowWidth: 140 }),
+  victory: trumpPose(1168, 645, 191, 329)
+};
+const trumpExtraPose = (x, y, w, h, options = {}) => ({
+  ...trumpPose(x, y, w, h, options),
+  image: trumpSupplementalSprite
+});
+Object.assign(trumpFrames, {
+  crouchBlock: trumpExtraPose(126, 92, 187, 210, { shadowWidth: 122 }),
+  jumpKick: trumpExtraPose(457, 19, 318, 241, { offsetX: 30, shadowWidth: 134 }),
+  blockHit: trumpExtraPose(872, 30, 207, 276),
+  lowHit: trumpExtraPose(1182, 74, 168, 232, { shadowWidth: 120 }),
+  knockdownAir: trumpExtraPose(80, 384, 356, 214, { bottomPad: 7, shadowWidth: 144 }),
+  knockdownFall: trumpExtraPose(445, 420, 271, 194, { bottomPad: 34, shadowWidth: 144 }),
+  knockdownLand: trumpExtraPose(786, 532, 302, 98, { bottomPad: 14, shadowWidth: 148 }),
+  special: trumpExtraPose(1166, 344, 288, 288, { offsetX: 24, shadowWidth: 126 }),
+  specialRecovery: trumpExtraPose(111, 674, 201, 282),
+  intro: trumpExtraPose(465, 643, 166, 319),
+  dizzy: trumpExtraPose(810, 654, 164, 305),
+  grapple: trumpExtraPose(1118, 695, 291, 261, { offsetX: 26, shadowWidth: 132 })
+});
+const trumpWalkPose = (x, y, w, h, options = {}) => ({
+  ...trumpPose(x, y, w, h, { ...options, height: Math.round(h * 0.762) }),
+  image: trumpWalkCycleSprite
+});
+const trumpWalkFrames = [
+  trumpWalkPose(42, 74, 239, 340, { shadowWidth: 120 }),
+  trumpWalkPose(369, 74, 239, 338, { shadowWidth: 120 }),
+  trumpWalkPose(678, 74, 221, 339, { shadowWidth: 116 }),
+  trumpWalkPose(966, 76, 228, 337, { shadowWidth: 118 }),
+  trumpWalkPose(1303, 74, 185, 339, { shadowWidth: 108 })
+];
+const trumpBackwalkFrames = [
+  trumpWalkPose(58, 555, 229, 334, { shadowWidth: 118 }),
+  trumpWalkPose(390, 555, 206, 335, { shadowWidth: 114 }),
+  trumpWalkPose(703, 558, 192, 332, { shadowWidth: 110 }),
+  trumpWalkPose(991, 554, 219, 335, { shadowWidth: 116 }),
+  trumpWalkPose(1296, 555, 205, 334, { shadowWidth: 114 })
+];
+const trumpWalkCycle = [0, 1, 2, 3, 4, 3, 2, 1];
 const jfkFrames = {
   idle: {
     image: jfkSprite,
@@ -851,16 +1428,74 @@ const tuningGroups = [
   { fighter: "T. Roosevelt", label: "teddy crouch block", frames: [teddyFrames.crouchBlock] },
   { fighter: "T. Roosevelt", label: "teddy hit", frames: [teddyFrames.hit] },
   { fighter: "T. Roosevelt", label: "teddy victory", frames: teddyVictoryFrames },
-  { fighter: "T. Roosevelt", label: "teddy knockdown", frames: teddyKnockdownFrames }
+  { fighter: "T. Roosevelt", label: "teddy knockdown", frames: teddyKnockdownFrames },
+  { fighter: "Grant", label: "grant idle", frames: [grantFrames.idle] },
+  { fighter: "Grant", label: "grant walk forward", frames: grantWalkFrames },
+  { fighter: "Grant", label: "grant walk back", frames: grantBackwalkFrames },
+  { fighter: "Grant", label: "grant punch", frames: [grantFrames.punch], move: "punch" },
+  { fighter: "Grant", label: "grant kick", frames: [grantFrames.kick], move: "kick" },
+  { fighter: "Grant", label: "grant jump kick", frames: [grantFrames.jumpKick], move: "kick" },
+  { fighter: "Grant", label: "grant crouch", frames: [grantFrames.crouch] },
+  { fighter: "Grant", label: "grant crouch punch", frames: [grantFrames.crouchPunch], move: "crouchPunch" },
+  { fighter: "Grant", label: "grant crouch kick", frames: [grantFrames.crouchKick], move: "crouchKick" },
+  { fighter: "Grant", label: "grant block", frames: [grantFrames.block] },
+  { fighter: "Grant", label: "grant crouch block", frames: [grantFrames.crouchBlock] },
+  { fighter: "Grant", label: "grant block hit", frames: [grantFrames.blockHit] },
+  { fighter: "Grant", label: "grant hit", frames: [grantFrames.hit] },
+  { fighter: "Grant", label: "grant low hit", frames: [grantFrames.lowHit] },
+  { fighter: "Grant", label: "grant jump", frames: [grantFrames.jump] },
+  { fighter: "Grant", label: "grant victory", frames: grantVictoryFrames },
+  { fighter: "Grant", label: "grant special", frames: [grantFrames.special] },
+  { fighter: "Grant", label: "grant special recovery", frames: [grantFrames.specialRecovery] },
+  { fighter: "Grant", label: "grant intro", frames: [grantFrames.intro] },
+  { fighter: "Grant", label: "grant grapple", frames: [grantFrames.grapple] },
+  { fighter: "Grant", label: "grant dizzy", frames: [grantFrames.dizzy] },
+  { fighter: "Grant", label: "grant knockdown air", frames: [grantFrames.knockdownAir] },
+  { fighter: "Grant", label: "grant knockdown land", frames: [grantFrames.knockdownLand] },
+  { fighter: "Grant", label: "grant knockdown", frames: [grantFrames.knockdown] },
+  { fighter: "Obama", label: "obama idle", frames: [obamaFrames.idle] },
+  { fighter: "Obama", label: "obama walk forward", frames: obamaWalkForwardFrames },
+  { fighter: "Obama", label: "obama punch", frames: [obamaFrames.punch], move: "punch" },
+  { fighter: "Obama", label: "obama kick", frames: [obamaFrames.kick], move: "kick" },
+  { fighter: "Obama", label: "obama jump", frames: [obamaFrames.jump] },
+  { fighter: "Obama", label: "obama jump kick", frames: [obamaFrames.jumpKick], move: "kick" },
+  { fighter: "Obama", label: "obama block", frames: [obamaFrames.block] },
+  { fighter: "Obama", label: "obama hit", frames: [obamaFrames.hit] },
+  { fighter: "Obama", label: "obama low hit", frames: [obamaFrames.lowHit] },
+  { fighter: "Obama", label: "obama crouch", frames: [obamaFrames.crouch] },
+  { fighter: "Obama", label: "obama crouch block", frames: [obamaFrames.crouchBlock] },
+  { fighter: "Obama", label: "obama crouch punch", frames: [obamaFrames.crouchPunch], move: "crouchPunch" },
+  { fighter: "Obama", label: "obama crouch kick", frames: [obamaFrames.crouchKick], move: "crouchKick" },
+  { fighter: "Trump", label: "trump idle", frames: [trumpFrames.idle] },
+  { fighter: "Trump", label: "trump walk forward", frames: trumpWalkFrames },
+  { fighter: "Trump", label: "trump walk back", frames: trumpBackwalkFrames },
+  { fighter: "Trump", label: "trump jump", frames: [trumpFrames.jump] },
+  { fighter: "Trump", label: "trump jump kick", frames: [trumpFrames.jumpKick], move: "kick" },
+  { fighter: "Trump", label: "trump punch", frames: [trumpFrames.punch], move: "punch" },
+  { fighter: "Trump", label: "trump kick", frames: [trumpFrames.kick], move: "kick" },
+  { fighter: "Trump", label: "trump block", frames: [trumpFrames.block] },
+  { fighter: "Trump", label: "trump crouch block", frames: [trumpFrames.crouchBlock] },
+  { fighter: "Trump", label: "trump block hit", frames: [trumpFrames.blockHit] },
+  { fighter: "Trump", label: "trump hit", frames: [trumpFrames.hit] },
+  { fighter: "Trump", label: "trump low hit", frames: [trumpFrames.lowHit] },
+  { fighter: "Trump", label: "trump crouch", frames: [trumpFrames.crouch] },
+  { fighter: "Trump", label: "trump crouch punch", frames: [trumpFrames.crouchPunch], move: "crouchPunch" },
+  { fighter: "Trump", label: "trump crouch kick", frames: [trumpFrames.crouchKick], move: "crouchKick" },
+  { fighter: "Trump", label: "trump victory", frames: [trumpFrames.victory] },
+  { fighter: "Trump", label: "trump knockdown air", frames: [trumpFrames.knockdownAir] },
+  { fighter: "Trump", label: "trump knockdown fall", frames: [trumpFrames.knockdownFall] },
+  { fighter: "Trump", label: "trump knockdown land", frames: [trumpFrames.knockdownLand] },
+  { fighter: "Trump", label: "trump special", frames: [trumpFrames.special] },
+  { fighter: "Trump", label: "trump special recovery", frames: [trumpFrames.specialRecovery] },
+  { fighter: "Trump", label: "trump intro", frames: [trumpFrames.intro] },
+  { fighter: "Trump", label: "trump dizzy", frames: [trumpFrames.dizzy] },
+  { fighter: "Trump", label: "trump grapple", frames: [trumpFrames.grapple] }
 ];
 
 // startup = frames before hitbox becomes active
 // active = frames hitbox can hit
 // recovery = frames before next action
 const moveDefs = {
-  // TODO: A simple close throw can live here later as a move with a short
-  // range and no block check. Keeping it out of this pass avoids destabilizing
-  // the startup/active/recovery polish.
   punch: {
     startup: 4,
     active: 4,
@@ -868,6 +1503,7 @@ const moveDefs = {
     damage: 6,
     hitbox: { x: 20, y: -132, w: 66, h: 44 },
     attackType: "punch",
+    hitLevel: "mid",
     label: "PUNCH"
   },
   kick: {
@@ -877,6 +1513,7 @@ const moveDefs = {
     damage: 9,
     hitbox: { x: 22, y: -110, w: 84, h: 38 },
     attackType: "kick",
+    hitLevel: "mid",
     label: "KICK"
   },
   crouchPunch: {
@@ -886,6 +1523,7 @@ const moveDefs = {
     damage: 6,
     hitbox: { x: 18, y: -82, w: 76, h: 42 },
     attackType: "crouch-punch",
+    hitLevel: "low",
     label: "PUNCH"
   },
   crouchKick: {
@@ -895,6 +1533,7 @@ const moveDefs = {
     damage: 9,
     hitbox: { x: 18, y: -58, w: 116, h: 34 },
     attackType: "crouch-kick",
+    hitLevel: "low",
     label: "KICK"
   },
   hatThrow: {
@@ -904,8 +1543,129 @@ const moveDefs = {
     damage: lincolnHatThrow.damage,
     hitbox: null,
     attackType: "hat-throw",
+    hitLevel: "mid",
     label: "STOVEPIPE",
     projectile: "lincolnHat"
+  }
+};
+
+const defaultFighterStats = {
+  maxHp: 100,
+  speed: 1,
+  jump: 1,
+  damage: 1,
+  energyRegen: 1,
+  forwardDashSpeed: 10,
+  backDashSpeed: 8,
+  dashFrames: 8,
+  dashCooldown: 24,
+  maxGuard: 100,
+  guardRegen: 0.2
+};
+
+// Each fighter keeps the shared four-button foundation, then bends it toward
+// a distinct archetype with stat tuning, normal overrides, and an I-button
+// signature. Lincoln's signature remains the existing stovepipe projectile.
+const FIGHTER_COMBAT = {
+  Washington: {
+    archetype: "Balanced counter-fighter",
+    stats: { maxHp: 104, speed: 1, jump: 1, damage: 1.02, energyRegen: 1, forwardDashSpeed: 10.2, backDashSpeed: 8.4, dashFrames: 8, dashCooldown: 23, maxGuard: 106, guardRegen: 0.21 },
+    moves: {
+      punch: { active: 5, damage: 7, hitbox: { x: 20, y: -134, w: 74, h: 46 } },
+      kick: { damage: 10, hitbox: { x: 22, y: -112, w: 92, h: 40 } }
+    },
+    signature: {
+      name: "Founder's Lunge",
+      startup: 8, active: 5, recovery: 20, damage: 12,
+      hitbox: { x: 24, y: -126, w: 98, h: 44 },
+      attackType: "punch", label: "FOUNDER'S LUNGE", hitLevel: "mid",
+      energyCost: 16, advanceDelay: 5, advanceFrames: 8, advanceSpeed: 7.6
+    }
+  },
+  Lincoln: {
+    archetype: "Anti-air zoner",
+    stats: { maxHp: 98, speed: 0.96, jump: 1.08, damage: 1, energyRegen: 1.12, forwardDashSpeed: 9.1, backDashSpeed: 9.4, dashFrames: 8, dashCooldown: 25, maxGuard: 98, guardRegen: 0.23 },
+    moves: {
+      punch: { startup: 5, damage: 7, hitbox: { x: 20, y: -142, w: 76, h: 48 } },
+      kick: { startup: 8, damage: 10, hitbox: { x: 24, y: -116, w: 90, h: 42 } }
+    },
+    signature: { name: "Stovepipe Throw", move: "hatThrow" }
+  },
+  "T. Roosevelt": {
+    archetype: "Aggressive rushdown",
+    stats: { maxHp: 102, speed: 1.12, jump: 1.04, damage: 0.98, energyRegen: 0.96, forwardDashSpeed: 11.8, backDashSpeed: 8.2, dashFrames: 9, dashCooldown: 20, maxGuard: 92, guardRegen: 0.18 },
+    moves: {
+      punch: { startup: 3, recovery: 10, damage: 5 },
+      kick: { startup: 6, recovery: 16, damage: 8 },
+      crouchKick: { startup: 6, recovery: 17, damage: 8 }
+    },
+    signature: {
+      name: "Big Stick",
+      startup: 11, active: 6, recovery: 25, damage: 15,
+      hitbox: { x: 18, y: -154, w: 100, h: 70 },
+      attackType: "kick", label: "BIG STICK", hitLevel: "overhead", energyCost: 18
+    }
+  },
+  Kennedy: {
+    archetype: "Mobile space-controller",
+    stats: { maxHp: 94, speed: 1.08, jump: 1.1, damage: 0.97, energyRegen: 1.18, forwardDashSpeed: 11.1, backDashSpeed: 10.4, dashFrames: 8, dashCooldown: 19, maxGuard: 94, guardRegen: 0.24 },
+    moves: {
+      punch: { startup: 4, damage: 6, hitbox: { x: 22, y: -132, w: 82, h: 42 } },
+      crouchKick: { recovery: 17, hitbox: { x: 20, y: -58, w: 126, h: 34 } }
+    },
+    signature: {
+      name: "PT-109 Sweep",
+      startup: 7, active: 6, recovery: 19, damage: 11,
+      hitbox: { x: 20, y: -58, w: 130, h: 36 },
+      attackType: "crouch-kick", label: "PT-109", hitLevel: "low", energyCost: 16
+    }
+  },
+  Obama: {
+    archetype: "Technical pressure",
+    stats: { maxHp: 98, speed: 1.08, jump: 1.04, damage: 0.96, energyRegen: 1.24, forwardDashSpeed: 10.9, backDashSpeed: 9.6, dashFrames: 8, dashCooldown: 20, maxGuard: 100, guardRegen: 0.25 },
+    moves: {
+      punch: { startup: 3, recovery: 9, damage: 5 },
+      crouchPunch: { startup: 4, recovery: 10, damage: 5 },
+      kick: { startup: 6, recovery: 17, damage: 8 }
+    },
+    signature: {
+      name: "Mic Drop",
+      startup: 9, active: 5, recovery: 19, damage: 12,
+      hitbox: { x: 24, y: -154, w: 86, h: 72 },
+      attackType: "kick", label: "MIC DROP", hitLevel: "overhead", energyCost: 15
+    }
+  },
+  Grant: {
+    archetype: "Heavy grappler",
+    stats: { maxHp: 114, speed: 0.86, jump: 0.9, damage: 1.12, energyRegen: 0.9, forwardDashSpeed: 8.7, backDashSpeed: 7.2, dashFrames: 9, dashCooldown: 28, maxGuard: 116, guardRegen: 0.17 },
+    moves: {
+      punch: { startup: 6, recovery: 14, damage: 8, hitbox: { x: 20, y: -134, w: 78, h: 48 } },
+      kick: { startup: 9, recovery: 23, damage: 11, hitbox: { x: 22, y: -112, w: 96, h: 42 } },
+      crouchKick: { startup: 9, recovery: 23, damage: 11 }
+    },
+    signature: {
+      name: "Unconditional Surrender",
+      startup: 8, active: 4, recovery: 29, damage: 16,
+      hitbox: { x: 10, y: -132, w: 74, h: 126 },
+      attackType: "grapple", label: "SURRENDER", hitLevel: "throw",
+      energyCost: 20, unblockable: true, knockdown: true
+    }
+  },
+  Trump: {
+    archetype: "Close-range trickster",
+    stats: { maxHp: 102, speed: 1.01, jump: 0.97, damage: 1.04, energyRegen: 1, forwardDashSpeed: 10.7, backDashSpeed: 9.2, dashFrames: 8, dashCooldown: 21, maxGuard: 102, guardRegen: 0.2 },
+    moves: {
+      punch: { startup: 5, active: 5, damage: 7 },
+      kick: { startup: 8, active: 6, damage: 10 },
+      crouchPunch: { startup: 4, recovery: 12, damage: 6 }
+    },
+    signature: {
+      name: "Deal Breaker",
+      startup: 6, active: 4, recovery: 24, damage: 13,
+      hitbox: { x: 10, y: -128, w: 70, h: 120 },
+      attackType: "grapple", label: "DEAL BREAKER", hitLevel: "throw",
+      energyCost: 18, unblockable: true, knockdown: true
+    }
   }
 };
 
@@ -919,7 +1679,9 @@ const presidents = [
     colors: ["#253d72", "#efe1b1", "#d4a94f"],
     accent: "#b33a3a",
     special: "dash",
-    line: "Cross the Delaware!"
+    line: "Cross the Delaware!",
+    introLine: "Hold the line. Then take it.",
+    victoryLine: "The field is secured."
   },
   {
     name: "Lincoln",
@@ -930,7 +1692,9 @@ const presidents = [
     colors: ["#1c1c22", "#5a351f", "#dadde5"],
     accent: "#77a7ff",
     special: "uppercut",
-    line: "Four score combo!"
+    line: "Four score combo!",
+    introLine: "A house divided still has room for one champion.",
+    victoryLine: "The better argument prevails."
   },
   {
     name: "T. Roosevelt",
@@ -941,7 +1705,9 @@ const presidents = [
     colors: ["#6c4b25", "#263f26", "#e8cc8b"],
     accent: "#f2bb38",
     special: "rush",
-    line: "Bully!"
+    line: "Bully!",
+    introLine: "Into the arena!",
+    victoryLine: "Credit belongs in the arena!"
   },
   {
     name: "Kennedy",
@@ -952,18 +1718,22 @@ const presidents = [
     colors: ["#253f77", "#15151d", "#e8e8ef"],
     accent: "#9ee4ff",
     special: "beam",
-    line: "Ask not..."
+    line: "Ask not...",
+    introLine: "The torch is lit. Let's go.",
+    victoryLine: "We chose the hard fight."
   },
   {
-    name: "Jefferson",
-    short: "JEFF",
-    selectSlug: "jefferson",
-    move: "Quill Cyclone",
-    stage: "Monticello Lawn",
-    colors: ["#7c2727", "#ead7a5", "#2d5f47"],
-    accent: "#f3f0cf",
+    name: "Obama",
+    short: "OBAMA",
+    selectSlug: "obama",
+    move: "Tan Suit Takedown",
+    stage: "White House South Lawn",
+    colors: ["#c9ad7f", "#b89b6e", "#8a4f35"],
+    accent: "#6d89ad",
     special: "cyclone",
-    line: "Declaration devastation!"
+    line: "Yes we can!",
+    introLine: "Stay calm. Pick the opening.",
+    victoryLine: "That's how you finish strong."
   },
   {
     name: "Grant",
@@ -973,8 +1743,27 @@ const presidents = [
     stage: "Capitol Encampment",
     colors: ["#243a66", "#324455", "#d0b06a"],
     accent: "#ffdf5f",
+    spriteScale: 1.08,
     special: "cannon",
-    line: "Unconditional combo!"
+    line: "Unconditional combo!",
+    introLine: "No retreat. No hesitation.",
+    victoryLine: "Terms accepted."
+  },
+  {
+    name: "Trump",
+    short: "TRUMP",
+    selectSlug: "trump",
+    selectTile: "assets/character-select-tile-trump-generated.png?v=20260712a",
+    selectBackground: "assets/character-select-bg-trump.png?v=20260712a",
+    move: "Executive Order",
+    stage: "Mar-a-Lago Ballroom",
+    colors: ["#153b73", "#17223a", "#e7a16c"],
+    accent: "#e5252a",
+    spriteScale: 0.94,
+    special: "rush",
+    line: "You're fired!",
+    introLine: "This arena needs a closer.",
+    victoryLine: "Another decisive victory."
   }
 ];
 
@@ -1033,11 +1822,14 @@ let player = makeFighter(presidents[3], 190, 1, true);
 let rival = makeFighter(presidents[1], 730, -1, false);
 let running = false;
 let gameOver = false;
+let paused = false;
+let pauseReason = "";
 let roundEndQueued = false;
 let roundResultCommitted = false;
 let roundFinale = { ford: false, motorcade: false };
 let roundText = "SELECT YOUR COMMANDER";
 let roundTextTimer = 999;
+let fighterCallout = null;
 let shake = 0;
 let tick = 0;
 let koSlowMoFrame = 0;
@@ -1158,6 +1950,7 @@ const jfkDizzyLossFrames = [
 ];
 let cpuEnabled = true;
 let aiDifficulty = "normal";
+let matchMode = "versus";
 let debugBoxes = false;
 let assetsReady = false;
 const fordBackgroundActors = [
@@ -1177,6 +1970,7 @@ let tuningFrameIndex = 0;
 
 function makeFighter(data, x, dir, human) {
   const scale = fighterDataScale(data);
+  const stats = { ...defaultFighterStats, ...(FIGHTER_COMBAT[data.name]?.stats || {}) };
   return {
     data,
     x,
@@ -1187,8 +1981,14 @@ function makeFighter(data, x, dir, human) {
     human,
     w: 72 * scale,
     h: 148 * scale,
-    hp: 100,
+    hp: stats.maxHp,
+    maxHp: stats.maxHp,
+    stats,
     energy: 100,
+    guard: stats.maxGuard,
+    guardRegenDelay: 0,
+    guardBreak: 0,
+    practiceRecoveryDelay: 0,
     cooldown: 0,
     attack: 0,
     attackType: "",
@@ -1199,6 +1999,11 @@ function makeFighter(data, x, dir, human) {
     specialDashDelay: 0,
     specialDashFrames: 0,
     specialDashSpeed: 0,
+    movementDashFrames: 0,
+    movementDashDirection: 0,
+    movementDashSpeed: 0,
+    movementDashCooldown: 0,
+    dashTapFrames: { KeyA: -999, KeyD: -999 },
     block: false,
     blockType: "",
     stunType: "",
@@ -1214,7 +2019,11 @@ function makeFighter(data, x, dir, human) {
     aiSpecialCooldown: 0,
     aiComboRemaining: 0,
     aiHabits: { jump: 0, crouchAttack: 0, retreat: 0 },
+    comboHits: 0,
+    comboTimer: 0,
+    comboTarget: null,
     jumpBuffer: 0,
+    combatInputBuffer: [],
     knockdown: 0,
     knockdownAge: 0,
     knockdownLanded: 0,
@@ -1239,6 +2048,28 @@ function fighterDataScale(data) {
   return data.spriteScale || 1;
 }
 
+function fighterCombatProfile(fighterOrData) {
+  const data = fighterOrData.data || fighterOrData;
+  return FIGHTER_COMBAT[data.name] || {};
+}
+
+function fighterMoveDef(f, moveName) {
+  if (moveName === "signature") return fighterCombatProfile(f).signature || null;
+  const base = moveDefs[moveName];
+  if (!base) return null;
+  const override = fighterCombatProfile(f).moves?.[moveName];
+  if (!override) return base;
+  return {
+    ...base,
+    ...override,
+    hitbox: override.hitbox ? { ...base.hitbox, ...override.hitbox } : base.hitbox
+  };
+}
+
+function fighterSignatureName(fighterOrData) {
+  return fighterCombatProfile(fighterOrData).signature?.name || "Signature Move";
+}
+
 function fighterScale(f) {
   return fighterDataScale(f.data);
 }
@@ -1259,6 +2090,18 @@ function usesTeddySprites(f) {
   return f.data.name === "T. Roosevelt";
 }
 
+function usesGrantSprites(f) {
+  return f.data.name === "Grant";
+}
+
+function usesObamaSprites(f) {
+  return f.data.name === "Obama";
+}
+
+function usesTrumpSprites(f) {
+  return f.data.name === "Trump";
+}
+
 function populateSelects() {
   presidents.forEach((pres, index) => {
     const left = new Option(`${pres.name} - ${pres.move}`, String(index));
@@ -1274,7 +2117,58 @@ function populateSelects() {
 function buildArcadeFlow() {
   renderCharacterGrid();
   renderLocationGrid();
+  updateDifficultyUi();
+  updateMatchModeUi();
   setArcadeScreen("intro");
+}
+
+function isPracticeMode() {
+  return matchMode === "practice";
+}
+
+function setMatchMode(mode, announce = false) {
+  if (mode !== "versus" && mode !== "practice") return;
+  matchMode = mode;
+  cpuEnabled = !isPracticeMode();
+  updateMatchModeUi();
+  if (announce) {
+    roundText = isPracticeMode() ? "PRACTICE MODE" : "VERSUS MODE";
+    roundTextTimer = 42;
+  }
+}
+
+function cycleMatchMode() {
+  setMatchMode(isPracticeMode() ? "versus" : "practice", true);
+}
+
+function updateMatchModeUi() {
+  modeButtons.forEach((button) => {
+    const selected = button.dataset.mode === matchMode;
+    button.setAttribute("aria-pressed", String(selected));
+  });
+}
+
+function setAiDifficulty(difficulty, announce = false) {
+  if (!AI_DIFFICULTY[difficulty]) return;
+  aiDifficulty = difficulty;
+  updateDifficultyUi();
+  if (announce) {
+    roundText = `CPU ${difficulty}`;
+    roundTextTimer = 42;
+  }
+}
+
+function cycleAiDifficulty() {
+  const levels = Object.keys(AI_DIFFICULTY);
+  const nextIndex = (levels.indexOf(aiDifficulty) + 1) % levels.length;
+  setAiDifficulty(levels[nextIndex], true);
+}
+
+function updateDifficultyUi() {
+  difficultyButtons.forEach((button) => {
+    const selected = button.dataset.difficulty === aiDifficulty;
+    button.setAttribute("aria-pressed", String(selected));
+  });
 }
 
 function setArcadeScreen(screen) {
@@ -1296,12 +2190,14 @@ function setArcadeScreen(screen) {
 function renderCharacterGrid() {
   characterGrid.innerHTML = "";
   presidents.forEach((pres, index) => {
+    const combat = fighterCombatProfile(pres);
+    const signature = fighterSignatureName(pres);
     const card = document.createElement("button");
     card.type = "button";
     card.className = "character-card";
     card.dataset.index = String(index);
     card.dataset.short = pres.short;
-    card.setAttribute("aria-label", `${pres.name}, ${pres.move}`);
+    card.setAttribute("aria-label", `${pres.name}, ${combat.archetype}, special ${pres.move}, signature ${signature}`);
     card.style.setProperty("--c1", pres.colors[0]);
     card.style.setProperty("--c2", pres.colors[1]);
     card.style.setProperty("--c3", pres.colors[2]);
@@ -1311,7 +2207,7 @@ function renderCharacterGrid() {
       </div>
       <footer>
         <strong>${pres.name}</strong>
-        <small>${pres.move}</small>
+        <small>${combat.archetype}; L: ${pres.move}; I: ${signature}</small>
       </footer>
     `;
     card.addEventListener("click", () => chooseCharacter(index));
@@ -1320,11 +2216,11 @@ function renderCharacterGrid() {
 }
 
 function characterSelectTilePath(pres) {
-  return `assets/character-select-tile-${pres.selectSlug}.png`;
+  return pres.selectTile || `assets/character-select-tile-${pres.selectSlug}.png`;
 }
 
 function characterSelectBackgroundPath(pres) {
-  return `assets/character-select-bg-${pres.selectSlug}.png`;
+  return pres.selectBackground || `assets/character-select-bg-${pres.selectSlug}.png`;
 }
 
 function locationTilePath(location) {
@@ -1334,6 +2230,37 @@ function locationTilePath(location) {
 function moveCharacterCursor(delta) {
   characterCursorIndex = (characterCursorIndex + delta + presidents.length) % presidents.length;
   updateCharacterSelectionUi();
+}
+
+function characterGridColumns() {
+  return window.matchMedia("(max-width: 760px)").matches ? 2 : 4;
+}
+
+function moveCharacterCursorForNavigation(code) {
+  if (code === "ArrowLeft" || code === "KeyA") {
+    moveCharacterCursor(-1);
+    return true;
+  }
+  if (code === "ArrowRight" || code === "KeyD") {
+    moveCharacterCursor(1);
+    return true;
+  }
+  const movingUp = code === "ArrowUp" || code === "KeyW";
+  const movingDown = code === "ArrowDown" || code === "KeyS";
+  if (!movingUp && !movingDown) return false;
+
+  if (characterGridColumns() === 4 && presidents.length === 7) {
+    const downTargets = [4, 5, 6, 6];
+    const upTargets = [0, 1, 2];
+    if (movingDown && characterCursorIndex < 4) characterCursorIndex = downTargets[characterCursorIndex];
+    else if (movingUp && characterCursorIndex >= 4) characterCursorIndex = upTargets[characterCursorIndex - 4];
+    else characterCursorIndex = (characterCursorIndex + (movingDown ? 4 : -4) + presidents.length) % presidents.length;
+    updateCharacterSelectionUi();
+    return true;
+  }
+
+  moveCharacterCursor(movingDown ? characterGridColumns() : -characterGridColumns());
+  return true;
 }
 
 function chooseCharacter(index) {
@@ -1350,8 +2277,9 @@ function chooseCharacter(index) {
 
 function updateCharacterSelectionUi() {
   const cursorPresident = presidents[characterCursorIndex];
-  const cursorColumn = characterCursorIndex % 3;
-  const cursorRow = Math.floor(characterCursorIndex / 3);
+  const columns = characterGridColumns();
+  const cursorColumn = characterCursorIndex % columns;
+  const cursorRow = Math.floor(characterCursorIndex / columns);
   characterPanel.style.setProperty("--character-select-bg", `url("${characterSelectBackgroundPath(cursorPresident)}")`);
   characterPanel.style.setProperty("--character-select-pan-x", `${46 + cursorColumn * 4}%`);
   characterPanel.style.setProperty("--character-select-pan-y", `${44 + cursorRow * 8}%`);
@@ -1433,50 +2361,46 @@ function launchSelectedMatch() {
   playerSelect.value = String(pendingPlayerIndex);
   rivalSelect.value = String(pendingRivalIndex);
   updateMoveCards();
+  cpuEnabled = !isPracticeMode();
   setArcadeScreen("fight");
   resetMatch();
 }
 
+function menuNavigationDelta(code, columns = 3) {
+  const deltas = {
+    ArrowLeft: -1,
+    KeyA: -1,
+    ArrowRight: 1,
+    KeyD: 1,
+    ArrowUp: -columns,
+    KeyW: -columns,
+    ArrowDown: columns,
+    KeyS: columns
+  };
+  return deltas[code] ?? null;
+}
+
 function handleArcadeFlowKey(event, wasDown) {
   if (arcadeScreen === "fight") return false;
-  if (arcadeScreen === "characters" && selectionSlot !== "ready" && !wasDown) {
-    if (event.code === "ArrowLeft" || event.code === "KeyA") {
-      moveCharacterCursor(-1);
-      return true;
-    }
-    if (event.code === "ArrowRight" || event.code === "KeyD") {
-      moveCharacterCursor(1);
-      return true;
-    }
-    if (event.code === "ArrowUp" || event.code === "KeyW") {
-      moveCharacterCursor(-3);
-      return true;
-    }
-    if (event.code === "ArrowDown" || event.code === "KeyS") {
-      moveCharacterCursor(3);
-      return true;
-    }
+  if (!wasDown && arcadeScreen === "locations" && event.code === "KeyM") {
+    cycleMatchMode();
+    return true;
   }
-  if (arcadeScreen === "locations" && !wasDown) {
-    if (event.code === "ArrowLeft" || event.code === "KeyA") {
-      moveLocationCursor(-1);
-      return true;
-    }
-    if (event.code === "ArrowRight" || event.code === "KeyD") {
-      moveLocationCursor(1);
-      return true;
-    }
-    if (event.code === "ArrowUp" || event.code === "KeyW") {
-      moveLocationCursor(-3);
-      return true;
-    }
-    if (event.code === "ArrowDown" || event.code === "KeyS") {
-      moveLocationCursor(3);
+  if (!wasDown && arcadeScreen === "characters" && selectionSlot !== "ready" && moveCharacterCursorForNavigation(event.code)) {
+    return true;
+  }
+  const navigationDelta = wasDown ? null : menuNavigationDelta(event.code, 3);
+  if (navigationDelta !== null) {
+    if (arcadeScreen === "locations") {
+      moveLocationCursor(navigationDelta);
       return true;
     }
   }
   if (event.code === "Enter" && !wasDown) {
-    if (arcadeScreen === "intro") setArcadeScreen("characters");
+    if (arcadeScreen === "intro") {
+      playIntroThemeOnce();
+      setArcadeScreen("characters");
+    }
     else if (arcadeScreen === "characters") {
       if (selectionSlot === "ready") setArcadeScreen("locations");
       else chooseCharacter(characterCursorIndex);
@@ -1536,10 +2460,23 @@ function startRound(p = matchPlayerData, r = matchRivalData) {
   pressed.clear();
   released.clear();
   roundTimer = timing.roundDurationFrames;
-  roundText = `ROUND ${roundNumber}`;
+  roundText = isPracticeMode() ? "PRACTICE" : `ROUND ${roundNumber}`;
   roundTextTimer = 130;
+  fighterCallout = !isPracticeMode() && roundNumber === 1
+    ? {
+        kind: "intro",
+        timer: 150,
+        maxTimer: 150,
+        entries: [
+          { fighter: player, line: player.data.introLine },
+          { fighter: rival, line: rival.data.introLine }
+        ]
+      }
+    : null;
   running = true;
   gameOver = false;
+  paused = false;
+  pauseReason = "";
   roundEndQueued = false;
   roundResultCommitted = false;
   roundFinale = { ford: false, motorcade: false };
@@ -1552,6 +2489,8 @@ function finishRound(winner) {
   if (roundEndQueued) return;
   roundEndQueued = true;
   running = false;
+  paused = false;
+  pauseReason = "";
   clearCombatEvents();
   projectiles = [];
   commitRoundWinner(winner);
@@ -1566,6 +2505,14 @@ function finishRound(winner) {
       ? `${winner === player ? "PLAYER" : "RIVAL"} WINS ROUND`
       : "DRAW";
   roundTextTimer = 999;
+  fighterCallout = winner
+    ? {
+        kind: "victory",
+        timer: 210,
+        maxTimer: 210,
+        entries: [{ fighter: winner, line: winner.data.victoryLine }]
+      }
+    : null;
 
   const token = ++roundTransitionToken;
   if (kennedyMatchWin) startMarilynCameo(matchWinner);
@@ -1592,6 +2539,13 @@ function commitRoundWinner(winner) {
   roundResultCommitted = true;
   if (winner === player) playerRoundWins += 1;
   if (winner === rival) rivalRoundWins += 1;
+}
+
+function roundWinnerFromHealth() {
+  if (player.hp <= 0 && rival.hp <= 0) return null;
+  if (player.hp <= 0) return rival;
+  if (rival.hp <= 0) return player;
+  return player.hp === rival.hp ? null : player.hp > rival.hp ? player : rival;
 }
 
 function startVictoryPose(f) {
@@ -1658,8 +2612,8 @@ function stepUmbrellaMan() {
 }
 
 function resetPositionsOnly() {
-  // Training reset preserves health and timer so repeated spacing tests do not
-  // erase the situation. Shift+R does the full health/timer reset.
+  // Versus resets preserve the current health and clock. Practice resets refill
+  // both fighters so repeated spacing and combo tests begin from a clean state.
   roundTransitionToken += 1;
   player.x = 190;
   rival.x = 730;
@@ -1668,6 +2622,13 @@ function resetPositionsOnly() {
   player.dir = 1;
   rival.dir = -1;
   [player, rival].forEach(clearFighterForTraining);
+  if (isPracticeMode()) {
+    [player, rival].forEach((f) => {
+      f.hp = f.maxHp;
+      f.energy = 100;
+      f.practiceRecoveryDelay = 0;
+    });
+  }
   projectiles = [];
   hitSparks = [];
   combatEvents = [];
@@ -1680,10 +2641,12 @@ function resetPositionsOnly() {
   shake = 0;
   gameOver = false;
   running = true;
+  paused = false;
+  pauseReason = "";
   roundEndQueued = false;
   roundResultCommitted = false;
   roundFinale = { ford: false, motorcade: false };
-  roundText = "TRAINING RESET";
+  roundText = isPracticeMode() ? "PRACTICE RESET" : "POSITION RESET";
   roundTextTimer = 42;
   overlay.classList.add("hidden");
 }
@@ -1701,11 +2664,20 @@ function clearFighterForTraining(f) {
   f.specialDashDelay = 0;
   f.specialDashFrames = 0;
   f.specialDashSpeed = 0;
+  f.movementDashFrames = 0;
+  f.movementDashDirection = 0;
+  f.movementDashSpeed = 0;
+  f.movementDashCooldown = 0;
+  f.dashTapFrames = { KeyA: -999, KeyD: -999 };
   f.block = false;
   f.blockType = "";
   f.stunType = "";
   f.hurt = 0;
   f.hitReact = 0;
+  f.guard = f.stats.maxGuard;
+  f.guardRegenDelay = 0;
+  f.guardBreak = 0;
+  f.practiceRecoveryDelay = 0;
   f.aiBlockTimer = 0;
   f.aiState = AI_STATES.NEUTRAL;
   f.aiIntent = { action: "idle", framesLeft: 0 };
@@ -1716,7 +2688,11 @@ function clearFighterForTraining(f) {
   f.aiSpecialCooldown = 0;
   f.aiComboRemaining = 0;
   f.aiHabits = { jump: 0, crouchAttack: 0, retreat: 0 };
+  f.comboHits = 0;
+  f.comboTimer = 0;
+  f.comboTarget = null;
   f.jumpBuffer = 0;
+  f.combatInputBuffer = [];
   f.knockdown = 0;
   f.knockdownAge = 0;
   f.knockdownLanded = 0;
@@ -1779,7 +2755,6 @@ function shouldPlayMotorcadeFinale(defeated) {
 }
 
 function motorcadeFinaleVariantFor(f) {
-  if (f.data.name === "Lincoln") return "lincoln";
   if (usesJfkSprites(f)) return "jfk";
   return "";
 }
@@ -1872,6 +2847,553 @@ function imagesSettled(images) {
 
 function randomInt(min, max) {
   return Math.floor(min + Math.random() * (max - min + 1));
+}
+
+function ensureAudioContext() {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return null;
+  if (!audioCtx) audioCtx = new AudioContextClass();
+  if (audioCtx.state === "suspended") audioCtx.resume();
+  return audioCtx;
+}
+
+function unlockIntroAudio(ac) {
+  if (!ac) return;
+  if (ac.state === "suspended") ac.resume();
+  const unlock = ac.createOscillator();
+  const gain = ac.createGain();
+  const now = ac.currentTime;
+  unlock.frequency.setValueAtTime(220, now);
+  gain.gain.setValueAtTime(0.0001, now);
+  unlock.connect(gain);
+  gain.connect(ac.destination);
+  unlock.start(now);
+  unlock.stop(now + 0.025);
+}
+
+function holdIntroAudioNodes(...nodes) {
+  introAudioNodes.push(...nodes.filter(Boolean));
+}
+
+function releaseIntroAudioNode(node) {
+  const index = introAudioNodes.indexOf(node);
+  if (index >= 0) introAudioNodes.splice(index, 1);
+}
+
+function playIntroThemeOnce() {
+  if (introThemePlayed) return;
+  introThemePlayed = true;
+  const ac = ensureAudioContext();
+  if (!ac) {
+    introThemePlayed = false;
+    return;
+  }
+  unlockIntroAudio(ac);
+  playHailToChiefIntro(authoredHailToChiefSequence());
+}
+
+function loadIntroMidi() {
+  if (introMidiSequence) return Promise.resolve(introMidiSequence);
+  if (window.hailToChiefMidiBase64) {
+    try {
+      introMidiSequence = parseIntroMidi(base64ToArrayBuffer(window.hailToChiefMidiBase64));
+      console.info(`Intro MIDI ready: ${introMidiSequence.notes.length} notes at ${introMidiSequence.tempo} BPM from embedded data`);
+      return Promise.resolve(introMidiSequence);
+    } catch (error) {
+      console.warn("Embedded intro MIDI failed; trying fetch", error);
+    }
+  }
+  if (!introMidiLoad) {
+    introMidiLoad = fetch(introMidiUrl)
+      .then((response) => {
+        if (!response.ok) throw new Error(`MIDI load failed: ${response.status}`);
+        return response.arrayBuffer();
+      })
+      .then((buffer) => {
+        introMidiSequence = parseIntroMidi(buffer);
+        console.info(`Intro MIDI ready: ${introMidiSequence.notes.length} notes at ${introMidiSequence.tempo} BPM`);
+        return introMidiSequence;
+      });
+  }
+  return introMidiLoad;
+}
+
+function base64ToArrayBuffer(base64) {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+  return bytes.buffer;
+}
+
+function fallbackIntroSequence() {
+  let start = 0;
+  return {
+    tempo: ym2151Tuning.tempo,
+    notes: hailToChiefFallbackMelody.map(([name, duration]) => {
+      const note = { start, duration, midi: noteToMidi[name], velocity: 104, channel: 0, program: 0, track: 0 };
+      start += duration;
+      return note;
+    }).filter((note) => Number.isFinite(note.midi))
+  };
+}
+
+function authoredHailToChiefSequence() {
+  const notes = [];
+  const addMelodyPass = (passStart, full) => {
+    let cursor = passStart;
+    hailToChiefFallbackMelody.forEach(([name, duration], index) => {
+      const midi = noteToMidi[name];
+      notes.push({
+        start: cursor,
+        duration: Math.max(0.12, duration * 0.88),
+        midi,
+        velocity: full ? 112 : 104,
+        channel: 0,
+        program: full ? 57 : 60,
+        track: 0
+      });
+      if (full && index % 2 === 0) {
+        notes.push({
+          start: cursor,
+          duration: Math.max(0.12, duration * 0.82),
+          midi: midi - 12,
+          velocity: 62,
+          channel: 1,
+          program: 60,
+          track: 1
+        });
+      }
+      cursor += duration;
+    });
+    return cursor;
+  };
+
+  const firstEnd = addMelodyPass(0, false);
+  const secondStart = firstEnd + 1;
+  const songEnd = addMelodyPass(secondStart, true);
+
+  [0, secondStart].forEach((passStart, passIndex) => {
+    let bassCursor = passStart;
+    hailToChiefBassPattern.forEach(([name, duration]) => {
+      if (bassCursor >= passStart + (firstEnd || 0)) return;
+      notes.push({
+        start: bassCursor,
+        duration: duration * 0.72,
+        midi: noteToMidi[name] - 12,
+        velocity: passIndex ? 88 : 72,
+        channel: 2,
+        program: 32,
+        track: 2
+      });
+      bassCursor += duration;
+    });
+
+    for (let beat = 0; passStart + beat < (passIndex ? songEnd : firstEnd); beat += 1) {
+      const start = passStart + beat;
+      notes.push({
+        start,
+        duration: 0.12,
+        midi: beat % 4 === 0 ? 36 : beat % 2 === 1 ? 38 : 42,
+        velocity: beat % 4 === 0 ? 96 : beat % 2 === 1 ? 82 : 54,
+        channel: 9,
+        program: 0,
+        track: 3
+      });
+      if (passIndex && beat % 2 === 0) {
+        notes.push({
+          start: start + 0.5,
+          duration: 0.08,
+          midi: 42,
+          velocity: 42,
+          channel: 9,
+          program: 0,
+          track: 3
+        });
+      }
+    }
+  });
+
+  return { tempo: 112, notes };
+}
+
+function parseIntroMidi(buffer) {
+  const view = new DataView(buffer);
+  let offset = 0;
+  const readString = (length) => {
+    let value = "";
+    for (let index = 0; index < length; index += 1) value += String.fromCharCode(view.getUint8(offset + index));
+    offset += length;
+    return value;
+  };
+  const readUint32 = () => {
+    const value = view.getUint32(offset);
+    offset += 4;
+    return value;
+  };
+  const readUint16 = () => {
+    const value = view.getUint16(offset);
+    offset += 2;
+    return value;
+  };
+  const readVlq = (limit) => {
+    let value = 0;
+    let byte = 0;
+    do {
+      if (offset >= limit) throw new Error("Unexpected MIDI EOF");
+      byte = view.getUint8(offset);
+      offset += 1;
+      value = (value << 7) | (byte & 0x7f);
+    } while (byte & 0x80);
+    return value;
+  };
+
+  if (readString(4) !== "MThd") throw new Error("Missing MIDI header");
+  const headerLength = readUint32();
+  const headerEnd = offset + headerLength;
+  readUint16();
+  const trackCount = readUint16();
+  const ticksPerQuarter = readUint16();
+  offset = headerEnd;
+
+  let tempo = ym2151Tuning.tempo;
+  const notes = [];
+  for (let trackIndex = 0; trackIndex < trackCount; trackIndex += 1) {
+    if (readString(4) !== "MTrk") throw new Error("Missing MIDI track");
+    const trackLength = readUint32();
+    const trackEnd = offset + trackLength;
+    let tick = 0;
+    let runningStatus = 0;
+    const active = new Map();
+    const programByChannel = new Map();
+
+    while (offset < trackEnd) {
+      tick += readVlq(trackEnd);
+      let status = view.getUint8(offset);
+      if (status & 0x80) {
+        offset += 1;
+        runningStatus = status;
+      } else {
+        status = runningStatus;
+      }
+
+      if (status === 0xff) {
+        const metaType = view.getUint8(offset);
+        offset += 1;
+        const length = readVlq(trackEnd);
+        if (metaType === 0x51 && length === 3) {
+          const microsecondsPerQuarter = (view.getUint8(offset) << 16) | (view.getUint8(offset + 1) << 8) | view.getUint8(offset + 2);
+          tempo = Math.round(60000000 / microsecondsPerQuarter);
+        }
+        offset += length;
+        continue;
+      }
+
+      if (status === 0xf0 || status === 0xf7) {
+        offset += readVlq(trackEnd);
+        continue;
+      }
+
+      const command = status & 0xf0;
+      const channel = status & 0x0f;
+      const note = view.getUint8(offset);
+      const hasTwoDataBytes = command !== 0xc0 && command !== 0xd0;
+      const velocity = hasTwoDataBytes ? view.getUint8(offset + 1) : 0;
+      offset += hasTwoDataBytes ? 2 : 1;
+
+      if (command === 0xc0) {
+        programByChannel.set(channel, note);
+        continue;
+      }
+
+      if (command === 0x90 && velocity > 0) {
+        const key = `${channel}:${note}`;
+        const retriggered = active.get(key);
+        if (retriggered) {
+          notes.push({
+            start: retriggered.tick / ticksPerQuarter,
+            duration: Math.max(1, tick - retriggered.tick) / ticksPerQuarter,
+            midi: note,
+            velocity: retriggered.velocity,
+            channel,
+            program: retriggered.program,
+            track: trackIndex
+          });
+        }
+        active.set(key, {
+          tick,
+          velocity,
+          program: programByChannel.get(channel) ?? 0
+        });
+      } else if (command === 0x80 || (command === 0x90 && velocity === 0)) {
+        const key = `${channel}:${note}`;
+        const started = active.get(key);
+        if (started) {
+          notes.push({
+            start: started.tick / ticksPerQuarter,
+            duration: Math.max(1, tick - started.tick) / ticksPerQuarter,
+            midi: note,
+            velocity: started.velocity,
+            channel,
+            program: started.program,
+            track: trackIndex
+          });
+          active.delete(key);
+        }
+      }
+    }
+    offset = trackEnd;
+  }
+
+  notes.sort((a, b) => a.start - b.start);
+  if (!notes.length) throw new Error("MIDI contains no playable notes");
+  return { tempo, notes };
+}
+
+function midiToFrequency(midi) {
+  return 440 * (2 ** ((midi - 69) / 12));
+}
+
+function playHailToChiefIntro(sequence = fallbackIntroSequence()) {
+  const ac = ensureAudioContext();
+  if (!ac) return;
+  const start = ac.currentTime + 0.06;
+  const master = ac.createGain();
+  const delay = ac.createDelay(0.32);
+  const feedback = ac.createGain();
+  const delayGain = ac.createGain();
+  master.gain.setValueAtTime(ym2151Tuning.masterGain, start);
+  delay.delayTime.setValueAtTime(0.18, start);
+  feedback.gain.setValueAtTime(0.12, start);
+  delayGain.gain.setValueAtTime(0.08, start);
+  master.connect(ac.destination);
+  master.connect(delay);
+  delay.connect(feedback);
+  feedback.connect(delay);
+  delay.connect(delayGain);
+  delayGain.connect(ac.destination);
+  if (introAudioCleanupTimer) {
+    clearTimeout(introAudioCleanupTimer);
+    introAudioCleanupTimer = null;
+  }
+  introAudioNodes.length = 0;
+  holdIntroAudioNodes(master, delay, feedback, delayGain);
+  if (introThemeTimer) {
+    clearInterval(introThemeTimer);
+    introThemeTimer = null;
+  }
+  const intro = buildIntroEvents(sequence);
+  console.info(`Intro MIDI scheduled: ${intro.tones} MIDI notes, ${intro.percussion} percussion notes`);
+  introAudioCleanupTimer = setTimeout(() => {
+    introAudioNodes.length = 0;
+    introAudioCleanupTimer = null;
+  }, Math.ceil((intro.lastBeat * intro.beat + 1.5) * 1000));
+  let nextIndex = 0;
+  const lookaheadSeconds = 1.2;
+  const scheduleChunk = () => {
+    const elapsedBeats = (ac.currentTime - start + lookaheadSeconds) / intro.beat;
+    while (nextIndex < intro.scheduledNotes.length && intro.scheduledNotes[nextIndex].start <= elapsedBeats) {
+      const event = intro.scheduledNotes[nextIndex];
+      const t = start + event.start * intro.beat;
+      if (event.kind === "tick") {
+        playYamahaDrum(ac, master, t, event.duration * intro.beat, event.midi, event.velocity);
+      } else {
+        const duration = Math.max(0.025, event.duration * intro.beat);
+        playYamahaFmVoice(ac, master, t, duration, event);
+      }
+      nextIndex += 1;
+    }
+    if (nextIndex >= intro.scheduledNotes.length) {
+      clearInterval(introThemeTimer);
+      introThemeTimer = null;
+    }
+  };
+  scheduleChunk();
+  introThemeTimer = setInterval(scheduleChunk, 180);
+}
+
+function buildIntroEvents(sequence) {
+  const beat = 60 / (sequence.tempo || ym2151Tuning.tempo);
+  const firstBeat = Math.min(...sequence.notes.map((note) => note.start));
+  const introNotes = sequence.notes
+    .map((note) => ({ ...note, start: Math.max(0, note.start - firstBeat) }));
+  const scheduledNotes = introNotes
+    .map((note) => ({ ...note, kind: note.channel === 9 ? "tick" : "note" }))
+    .sort((a, b) => a.start - b.start || a.channel - b.channel || a.midi - b.midi);
+  const lastBeat = scheduledNotes.reduce((max, event) => Math.max(max, event.start + (event.duration || 0.25)), 0);
+  return {
+    beat,
+    scheduledNotes,
+    lastBeat,
+    tones: scheduledNotes.filter((note) => note.kind === "note").length,
+    percussion: scheduledNotes.filter((note) => note.kind === "tick").length
+  };
+}
+
+function yamahaPatchForNote(note) {
+  if (note.midi < 45 || (note.program >= 32 && note.program <= 39)) return yamahaFmLibrary.bass;
+  if (note.program >= 8 && note.program <= 15) return yamahaFmLibrary.xylophone;
+  if (note.program >= 24 && note.program <= 31) return yamahaFmLibrary.guitar;
+  if (note.program >= 56 && note.program <= 63) {
+    return note.program >= 60 ? yamahaFmLibrary.horn : yamahaFmLibrary.brass;
+  }
+  return yamahaFmLibrary.piano;
+}
+
+function playYamahaFmVoice(ac, destination, start, duration, note) {
+  const patch = yamahaPatchForNote(note);
+  duration = Math.min(duration, patch.maxDuration);
+  const carrier = ac.createOscillator();
+  const modulator = ac.createOscillator();
+  const modGain = ac.createGain();
+  const amp = ac.createGain();
+  const filter = ac.createBiquadFilter();
+  const freq = midiToFrequency(note.midi);
+  const velocity = Math.max(0.08, note.velocity / 127);
+  const attackEnd = start + Math.min(patch.attack, duration * 0.3);
+  const releaseStart = start + Math.max(patch.attack, duration - Math.min(patch.release, duration * 0.45));
+
+  carrier.type = patch.carrier;
+  modulator.type = patch.modulator;
+  carrier.frequency.setValueAtTime(freq, start);
+  modulator.frequency.setValueAtTime(freq * patch.modRatio, start);
+  modGain.gain.setValueAtTime(patch.modIndex, start);
+  modGain.gain.exponentialRampToValueAtTime(Math.max(1, patch.modIndex * 0.28), releaseStart);
+
+  filter.type = "lowpass";
+  filter.frequency.setValueAtTime(patch.filter, start);
+  filter.Q.setValueAtTime(patch.q, start);
+
+  amp.gain.setValueAtTime(0.0001, start);
+  amp.gain.exponentialRampToValueAtTime(Math.max(0.0002, patch.level * velocity), attackEnd);
+  amp.gain.setValueAtTime(Math.max(0.0002, patch.level * velocity * 0.72), releaseStart);
+  amp.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+
+  modulator.connect(modGain);
+  modGain.connect(carrier.frequency);
+  carrier.connect(filter);
+  filter.connect(amp);
+  amp.connect(destination);
+  holdIntroAudioNodes(carrier, modulator, modGain, amp, filter);
+  carrier.onended = () => {
+    releaseIntroAudioNode(carrier);
+    releaseIntroAudioNode(modulator);
+    releaseIntroAudioNode(modGain);
+    releaseIntroAudioNode(amp);
+    releaseIntroAudioNode(filter);
+  };
+
+  carrier.start(start);
+  modulator.start(start);
+  carrier.stop(start + duration + 0.04);
+  modulator.stop(start + duration + 0.04);
+}
+
+function playYamahaDrum(ac, destination, start, duration, midi, velocity) {
+  const level = Math.max(0.08, velocity / 127);
+  if (midi === 35 || midi === 36) {
+    playYamahaKick(ac, destination, start, level);
+    return;
+  }
+  if (midi === 38 || midi === 40) {
+    playYamahaSnare(ac, destination, start, level);
+    return;
+  }
+  if (midi >= 41 && midi <= 50) {
+    playYamahaTom(ac, destination, start, midi, level);
+    return;
+  }
+  playYamahaNoiseDrum(ac, destination, start, duration, midi, level);
+}
+
+function playYamahaKick(ac, destination, start, velocity) {
+  const oscillator = ac.createOscillator();
+  const gain = ac.createGain();
+  oscillator.type = "sine";
+  oscillator.frequency.setValueAtTime(145, start);
+  oscillator.frequency.exponentialRampToValueAtTime(48, start + 0.13);
+  gain.gain.setValueAtTime(0.085 * velocity, start);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.16);
+  oscillator.connect(gain);
+  gain.connect(destination);
+  holdIntroAudioNodes(oscillator, gain);
+  oscillator.onended = () => {
+    releaseIntroAudioNode(oscillator);
+    releaseIntroAudioNode(gain);
+  };
+  oscillator.start(start);
+  oscillator.stop(start + 0.17);
+}
+
+function playYamahaSnare(ac, destination, start, velocity) {
+  playYamahaNoiseDrum(ac, destination, start, 0.13, 38, velocity);
+  const oscillator = ac.createOscillator();
+  const gain = ac.createGain();
+  oscillator.type = "triangle";
+  oscillator.frequency.setValueAtTime(185, start);
+  gain.gain.setValueAtTime(0.025 * velocity, start);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.09);
+  oscillator.connect(gain);
+  gain.connect(destination);
+  holdIntroAudioNodes(oscillator, gain);
+  oscillator.onended = () => {
+    releaseIntroAudioNode(oscillator);
+    releaseIntroAudioNode(gain);
+  };
+  oscillator.start(start);
+  oscillator.stop(start + 0.1);
+}
+
+function playYamahaTom(ac, destination, start, midi, velocity) {
+  const oscillator = ac.createOscillator();
+  const gain = ac.createGain();
+  const frequency = 92 * (2 ** ((midi - 41) / 12));
+  oscillator.type = "sine";
+  oscillator.frequency.setValueAtTime(frequency * 1.35, start);
+  oscillator.frequency.exponentialRampToValueAtTime(frequency, start + 0.11);
+  gain.gain.setValueAtTime(0.055 * velocity, start);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.18);
+  oscillator.connect(gain);
+  gain.connect(destination);
+  holdIntroAudioNodes(oscillator, gain);
+  oscillator.onended = () => {
+    releaseIntroAudioNode(oscillator);
+    releaseIntroAudioNode(gain);
+  };
+  oscillator.start(start);
+  oscillator.stop(start + 0.19);
+}
+
+function playYamahaNoiseDrum(ac, destination, start, duration, midi, velocity) {
+  const sampleRate = ac.sampleRate;
+  const isCymbal = midi >= 49;
+  const isClosedHat = midi === 42 || midi === 44;
+  const hitDuration = isCymbal
+    ? Math.max(0.18, Math.min(0.65, duration || 0.35))
+    : Math.max(0.035, Math.min(isClosedHat ? 0.07 : 0.18, duration || 0.1));
+  const buffer = ac.createBuffer(1, Math.max(1, Math.floor(sampleRate * hitDuration)), sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < data.length; i += 1) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+  const source = ac.createBufferSource();
+  const filter = ac.createBiquadFilter();
+  const gain = ac.createGain();
+  const drumLevel = (isCymbal ? 0.018 : isClosedHat ? 0.025 : 0.04) * velocity;
+  source.buffer = buffer;
+  filter.type = midi >= 42 ? "highpass" : "bandpass";
+  filter.frequency.setValueAtTime(midi >= 49 ? 4200 : midi >= 42 ? 6500 : 1900, start);
+  filter.Q.setValueAtTime(midi >= 42 ? 0.55 : 0.9, start);
+  gain.gain.setValueAtTime(drumLevel, start);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + hitDuration);
+  source.connect(filter);
+  filter.connect(gain);
+  gain.connect(destination);
+  holdIntroAudioNodes(source, filter, gain);
+  source.onended = () => {
+    releaseIntroAudioNode(source);
+    releaseIntroAudioNode(filter);
+    releaseIntroAudioNode(gain);
+  };
+  source.start(start);
+  source.stop(start + hitDuration);
 }
 
 // Sprite frames are planted by their anchor. By default, the anchor is the
@@ -1974,7 +3496,10 @@ function tuningFrameImageLabel(frame) {
     ["teddyCrouchSprite", teddyCrouchSprite],
     ["teddyCrouchPunchSprite", teddyCrouchPunchSprite],
     ["teddyCrouchKickSprite", teddyCrouchKickSprite],
-    ["teddyCrouchBlockSprite", teddyCrouchBlockSprite]
+    ["teddyCrouchBlockSprite", teddyCrouchBlockSprite],
+    ["trumpSpriteSheet", trumpSpriteSheet],
+    ["trumpSupplementalSprite", trumpSupplementalSprite],
+    ["trumpWalkCycleSprite", trumpWalkCycleSprite]
   ];
   return singles.find(([, image]) => image === frame.image)?.[0] || "image";
 }
@@ -2075,28 +3600,81 @@ function canAct(f) {
   return f.knockdown <= 0 && f.hurt <= 0;
 }
 
-function canStartMove(f) {
-  return canAct(f) && !f.currentMove && f.cooldown <= 0;
+const comboRoutes = {
+  punch: new Set(["kick", "crouchKick", "signature", "hatThrow", "special"]),
+  crouchPunch: new Set(["punch", "kick", "crouchKick", "signature", "hatThrow", "special"]),
+  kick: new Set(["signature", "hatThrow", "special"]),
+  crouchKick: new Set(["special"])
+};
+
+function canCancelInto(f, nextMove) {
+  if (!f.currentMove || !f.hasHitThisMove || !canAct(f)) return false;
+  const current = currentMoveDef(f);
+  const route = comboRoutes[f.currentMove];
+  return Boolean(current && route?.has(nextMove) && f.moveAge >= current.startup);
+}
+
+function canStartMove(f, moveName = "") {
+  if (!canAct(f)) return false;
+  if (!f.currentMove) return f.cooldown <= 0;
+  return canCancelInto(f, moveName);
+}
+
+function prepareMoveCancel(f, nextMove) {
+  if (!canCancelInto(f, nextMove)) return false;
+  f.currentMove = null;
+  f.moveAge = 0;
+  f.hasHitThisMove = false;
+  f.attack = 0;
+  f.attackType = "";
+  f.cooldown = 0;
+  return true;
 }
 
 function canStartSpecial(f) {
-  return canStartMove(f) && f.energy >= damageTuning.specialEnergyCost;
+  return canStartMove(f, "special") && f.energy >= damageTuning.specialEnergyCost;
 }
 
 function canStartHatThrow(f) {
-  return f.data.name === "Lincoln" && canStartMove(f) && f.energy >= lincolnHatThrow.energyCost;
+  return f.data.name === "Lincoln" && canStartMove(f, "hatThrow") && f.energy >= lincolnHatThrow.energyCost;
 }
 
 function canBlock(f) {
-  return canAct(f) && !f.currentMove && !f.jumping && f.specialDashFrames <= 0;
+  return canAct(f) && !f.currentMove && !f.jumping && f.specialDashFrames <= 0 && f.movementDashFrames <= 0;
 }
 
 function canMove(f) {
-  return canAct(f) && !f.currentMove && !f.block && f.specialDashFrames <= 0;
+  return canAct(f) && !f.currentMove && !f.block && f.specialDashFrames <= 0 && f.movementDashFrames <= 0;
+}
+
+function canPauseMatch() {
+  return arcadeScreen === "fight" && running && !gameOver && !tuningMode;
+}
+
+function setMatchPaused(nextPaused, reason = "manual") {
+  if (nextPaused && !canPauseMatch()) return false;
+  paused = Boolean(nextPaused);
+  pauseReason = paused ? reason : "";
+  keys.clear();
+  pressed.clear();
+  released.clear();
+  frameLag = 0;
+  lastFrameTime = 0;
+  return true;
+}
+
+function toggleMatchPause() {
+  return setMatchPaused(!paused, "manual");
 }
 
 function update() {
+  if (paused) {
+    pressed.clear();
+    released.clear();
+    return;
+  }
   tick += 1;
+  stepFighterCallout();
   if (!running) {
     stepVictoryPoses();
     stepMarilynCameo();
@@ -2123,8 +3701,10 @@ function update() {
 
   updateFacing(player, rival);
   if (!gameOver) {
-    if (roundTimer > 0 && roundTextTimer < roundIntroFreezeFrames) roundTimer -= 1;
-    if (roundTimer <= 0) endRoundOnTime();
+    if (!isPracticeMode()) {
+      if (roundTimer > 0 && roundTextTimer < roundIntroFreezeFrames) roundTimer -= 1;
+      if (roundTimer <= 0) endRoundOnTime();
+    }
   }
 
   if (!gameOver) {
@@ -2152,27 +3732,32 @@ function update() {
     gameOver = true;
     clearCombatEvents();
     projectiles = [];
-    const defeated = player.hp <= 0 ? player : rival;
-    const winner = defeated === player ? rival : player;
+    const winner = roundWinnerFromHealth();
+    const defeatedFighters = [player, rival].filter((f) => f.hp <= 0);
+    const defeated = defeatedFighters[0];
     roundFinale = {
-      ford: shouldPlayFordFinale(defeated),
-      motorcade: shouldPlayMotorcadeFinale(defeated)
+      ford: Boolean(winner && defeatedFighters.length === 1 && shouldPlayFordFinale(defeated)),
+      motorcade: Boolean(winner && defeatedFighters.length === 1 && shouldPlayMotorcadeFinale(defeated))
     };
-    defeated.attack = 0;
-    defeated.attackType = "";
-    defeated.currentMove = null;
-    if (roundFinale.ford || roundFinale.motorcade) {
-      defeated.knockdown = 1;
-      defeated.knockdownAge = 0;
-      defeated.knockdownLanded = 0;
-      defeated.knockdownDir = defeated === player ? rival.dir : player.dir;
-      defeated.y = floorY;
-      defeated.vx = 0;
-      defeated.vy = 0;
-      defeated.jumping = false;
-      defeated.crouching = false;
-    } else {
-      startKnockdown(defeated, defeated === player ? rival.dir : player.dir);
+    defeatedFighters.forEach((f) => {
+      f.attack = 0;
+      f.attackType = "";
+      f.currentMove = null;
+      if (roundFinale.ford || roundFinale.motorcade) {
+        f.knockdown = 1;
+        f.knockdownAge = 0;
+        f.knockdownLanded = 0;
+        f.knockdownDir = f === player ? rival.dir : player.dir;
+        f.y = floorY;
+        f.vx = 0;
+        f.vy = 0;
+        f.jumping = false;
+        f.crouching = false;
+      } else {
+        startKnockdown(f, f === player ? rival.dir : player.dir);
+      }
+    });
+    if (!roundFinale.ford && !roundFinale.motorcade) {
       roundText = "K.O.";
       roundTextTimer = 999;
     }
@@ -2180,13 +3765,16 @@ function update() {
   }
 
   if (gameOver && (player.hp <= 0 || rival.hp <= 0)) {
-    const defeated = player.hp <= 0 ? player : rival;
-    if (defeated.knockdown <= 1) {
-      defeated.knockdown = 1;
-      defeated.y = floorY;
-      defeated.vx = 0;
-      defeated.vy = 0;
-      defeated.jumping = false;
+    const defeatedFighters = [player, rival].filter((f) => f.hp <= 0);
+    const defeated = defeatedFighters[0];
+    if (defeatedFighters.every((f) => f.knockdown <= 1)) {
+      defeatedFighters.forEach((f) => {
+        f.knockdown = 1;
+        f.y = floorY;
+        f.vx = 0;
+        f.vy = 0;
+        f.jumping = false;
+      });
       if (roundFinale.ford) {
         if (!fordFinale) startFordFinale(defeated);
         if (!fordFinaleDone()) {
@@ -2203,11 +3791,17 @@ function update() {
           return;
         }
       }
-      finishRound(player.hp > rival.hp ? player : rival);
+      finishRound(roundWinnerFromHealth());
     }
   }
   pressed.clear();
   released.clear();
+}
+
+function stepFighterCallout() {
+  if (!fighterCallout) return;
+  fighterCallout.timer = Math.max(0, fighterCallout.timer - 1);
+  if (fighterCallout.timer <= 0) fighterCallout = null;
 }
 
 function updateFacing(a, b) {
@@ -2231,10 +3825,10 @@ function updateFighterAnimationState(f) {
   setFighterState(f, nextState);
 
   if (nextState === "walkForward") {
-    const frames = usesTeddySprites(f) ? teddyWalkCycle : usesJfkSprites(f) ? jfkWalkCycle : usesLincolnSprites(f) ? lincolnWalkCycle : washingtonWalkFrames;
+    const frames = usesTrumpSprites(f) ? trumpWalkCycle : usesTeddySprites(f) ? teddyWalkCycle : usesJfkSprites(f) ? jfkWalkCycle : usesLincolnSprites(f) ? lincolnWalkCycle : washingtonWalkFrames;
     advanceAnimation(f, frames, walkFrameTicks);
   } else if (nextState === "walkBack") {
-    const frames = usesTeddySprites(f) ? teddyBackwalkCycle : usesJfkSprites(f) ? jfkBackwalkCycle : usesWashingtonSprites(f) ? washingtonBackwalkCycle : lincolnWalkCycle;
+    const frames = usesTrumpSprites(f) ? trumpWalkCycle : usesTeddySprites(f) ? teddyBackwalkCycle : usesJfkSprites(f) ? jfkBackwalkCycle : usesWashingtonSprites(f) ? washingtonBackwalkCycle : lincolnWalkCycle;
     advanceAnimation(f, frames, backwalkFrameTicks);
   }
   f.stateAge += 1;
@@ -2242,29 +3836,99 @@ function updateFighterAnimationState(f) {
 
 function endRoundOnTime() {
   gameOver = true;
-  finishRound(player.hp === rival.hp ? null : player.hp > rival.hp ? player : rival);
+  finishRound(roundWinnerFromHealth());
+}
+
+function canStartMovementDash(f) {
+  return canAct(f)
+    && !f.currentMove
+    && !f.jumping
+    && !f.crouching
+    && !f.block
+    && f.specialDashFrames <= 0
+    && f.specialDashDelay <= 0
+    && f.movementDashFrames <= 0
+    && f.movementDashCooldown <= 0;
+}
+
+function startMovementDash(f, direction) {
+  if (!canStartMovementDash(f) || !direction) return false;
+  const forward = direction === f.dir;
+  f.movementDashFrames = f.stats.dashFrames;
+  f.movementDashDirection = direction;
+  f.movementDashSpeed = forward ? f.stats.forwardDashSpeed : f.stats.backDashSpeed;
+  f.movementDashCooldown = f.stats.dashCooldown;
+  f.crouching = false;
+  f.block = false;
+  f.blockType = "";
+  return true;
+}
+
+function stopMovementDash(f) {
+  f.movementDashFrames = 0;
+  f.movementDashDirection = 0;
+  f.movementDashSpeed = 0;
+}
+
+function handleMovementDashTap(f, code) {
+  if (code !== "KeyA" && code !== "KeyD") return false;
+  const lastTap = f.dashTapFrames[code];
+  f.dashTapFrames[code] = tick;
+  if (tick - lastTap > timing.dashInputWindowFrames) return false;
+  f.dashTapFrames[code] = -999;
+  return startMovementDash(f, code === "KeyA" ? -1 : 1);
 }
 
 function controlPlayer() {
   if (canAct(player)) player.crouching = keys.has("KeyS") && !player.jumping;
   else if (player.stunType !== "block") player.crouching = false;
   player.vx = 0;
-  if (!canMove(player)) player.crouching = player.crouching && !player.jumping;
-  if (!player.crouching && canMove(player) && keys.has("KeyA")) player.vx -= playerSpeed;
-  if (!player.crouching && canMove(player) && keys.has("KeyD")) player.vx += playerSpeed;
-  if (keys.has("Space") && canBlock(player)) player.blockType = player.crouching ? "crouching" : "standing";
+  const dashing = player.movementDashFrames > 0 && canAct(player) && !player.currentMove;
+  if (dashing) {
+    player.crouching = false;
+    player.vx = player.movementDashDirection * player.movementDashSpeed;
+  } else {
+    if (!canMove(player)) player.crouching = player.crouching && !player.jumping;
+    if (!player.crouching && canMove(player) && keys.has("KeyA")) player.vx -= playerSpeed * player.stats.speed;
+    if (!player.crouching && canMove(player) && keys.has("KeyD")) player.vx += playerSpeed * player.stats.speed;
+  }
+  if (!dashing && keys.has("Space") && canBlock(player)) player.blockType = player.crouching ? "crouching" : "standing";
   else if (player.stunType !== "block") player.blockType = "";
   player.block = player.blockType !== "";
   if (player.jumpBuffer > 0 && canMove(player) && !player.jumping && !player.crouching) {
-    player.vy = jumpVelocity;
+    player.vy = jumpVelocity * player.stats.jump;
     player.jumping = true;
     player.jumpBuffer = 0;
   }
   player.jumpBuffer = Math.max(0, player.jumpBuffer - 1);
-  if (pressed.has("KeyJ")) startMove(player, player.crouching ? "crouchPunch" : "punch");
-  if (pressed.has("KeyK")) startMove(player, player.crouching ? "crouchKick" : "kick");
-  if (pressed.has("KeyI")) startMove(player, "hatThrow");
-  if (pressed.has("KeyL")) startSpecial(player, rival);
+  consumeBufferedCombatInput(player, rival);
+}
+
+function bufferCombatInput(f, code, crouching = false) {
+  if (!["KeyJ", "KeyK", "KeyI", "KeyL"].includes(code)) return false;
+  f.combatInputBuffer.push({ code, crouching, frames: timing.combatInputBufferFrames });
+  if (f.combatInputBuffer.length > 3) f.combatInputBuffer.shift();
+  return true;
+}
+
+function tryBufferedCombatInput(f, opponent, input) {
+  if (input.code === "KeyJ") return startMove(f, input.crouching ? "crouchPunch" : "punch");
+  if (input.code === "KeyK") return startMove(f, input.crouching ? "crouchKick" : "kick");
+  if (input.code === "KeyI") return startSignature(f, opponent);
+  if (input.code === "KeyL") return startSpecial(f, opponent);
+  return false;
+}
+
+function consumeBufferedCombatInput(f, opponent) {
+  const input = f.combatInputBuffer[0];
+  if (!input) return false;
+  if (tryBufferedCombatInput(f, opponent, input)) {
+    f.combatInputBuffer.shift();
+    return true;
+  }
+  input.frames -= 1;
+  if (input.frames <= 0) f.combatInputBuffer.shift();
+  return false;
 }
 
 // CPU AI: delayed observation + state machine + utility scores. Intents map
@@ -2342,17 +4006,23 @@ function getAIIntent(ai, opponent, observed, config) {
   const centerDistance = Math.abs(ai.x - W / 2);
   const nearWall = ai.x < 112 || ai.x > W - 112;
   const close = distance < 118;
+  const guardRatio = ai.guard / ai.stats.maxGuard;
+  const blockConfidence = clamp(guardRatio * 1.35, 0.12, 1);
+  const guardRetreatBias = guardRatio < 0.35 ? 1.8 : 1;
   const scores = [
     scoredAIAction("idle", 8, AI_STATES.NEUTRAL),
     scoredAIAction("approach", distance > personality.preferredRange ? 38 + distance * 0.12 : 2, AI_STATES.APPROACH),
-    scoredAIAction("retreat", distance < 80 ? 36 : nearWall ? 2 : 9, AI_STATES.RETREAT),
+    scoredAIAction("retreat", (distance < 80 ? 36 : nearWall ? 2 : 9) * guardRetreatBias, AI_STATES.RETREAT),
+    scoredAIAction("dashApproach", distance > personality.preferredRange + 100 && ai.movementDashCooldown <= 0 ? 26 * config.aggression * (personality.dashBias || 1) : 0, AI_STATES.APPROACH),
+    scoredAIAction("dashRetreat", observed.attacking && distance < 152 && !nearWall && ai.movementDashCooldown <= 0 ? 32 * config.defense * personality.defense * guardRetreatBias : 0, AI_STATES.RETREAT),
     scoredAIAction("punch", close ? 46 * config.aggression * personality.aggression : 0, AI_STATES.PRESSURE),
     scoredAIAction(personality.poke, distance < 145 ? 38 * config.aggression * personality.aggression : 0, AI_STATES.PRESSURE),
-    scoredAIAction("block", observed.attacking && distance < 176 ? 74 * config.defense * personality.defense * config.blockChance : 0, AI_STATES.DEFEND),
+    scoredAIAction("block", observed.attacking && distance < 176 ? 74 * config.defense * personality.defense * config.blockChance * blockConfidence : 0, AI_STATES.DEFEND),
     scoredAIAction("punish", observed.vulnerable && distance < 138 ? 82 * config.punishChance * personality.punish : 0, AI_STATES.PUNISH),
     scoredAIAction("antiAir", observed.jumping && distance < 158 ? (66 + ai.aiHabits.jump * 5) * config.antiAirChance : 0, AI_STATES.ANTI_AIR),
+    scoredAIAction("signature", ai.data.name !== "Lincoln" && ai.aiSpecialCooldown <= 0 ? aiRangeScore(distance, personality.signatureRange, 28 * config.specialChance * personality.special * personality.signatureBias) : 0, AI_STATES.PRESSURE),
     scoredAIAction("hatThrow", ai.data.name === "Lincoln" && distance > 155 && distance < 390 && ai.aiSpecialCooldown <= 0 ? 30 * config.specialChance * personality.special : 0, AI_STATES.NEUTRAL),
-    scoredAIAction("special", distance > 130 && distance < 330 && ai.aiSpecialCooldown <= 0 ? 34 * config.specialChance * personality.special : 0, AI_STATES.NEUTRAL),
+    scoredAIAction("special", ai.aiSpecialCooldown <= 0 ? aiRangeScore(distance, personality.specialRange, 34 * config.specialChance * personality.special) : 0, AI_STATES.NEUTRAL),
     scoredAIAction("jump", distance > 150 && ai.aiJumpCooldown <= 0 ? 18 * config.jumpChance * personality.jump : 0, AI_STATES.NEUTRAL),
     scoredAIAction("center", centerDistance > 180 && distance > 120 ? 22 * personality.centerBias : 0, AI_STATES.APPROACH)
   ];
@@ -2365,6 +4035,10 @@ function getAIIntent(ai, opponent, observed, config) {
   }
   const chosen = chooseWeightedAction(scores, config);
   return aiIntent(ai, chosen.action, chosen.state, randomInt(8, 18), scores);
+}
+
+function aiRangeScore(distance, range, score) {
+  return distance >= range[0] && distance <= range[1] ? score : 0;
 }
 
 function scoredAIAction(action, score, state) {
@@ -2390,23 +4064,32 @@ function applyAIIntent(ai, opponent, intent, config) {
   if (!intent || !canAct(ai)) return;
   const toward = opponent.x < ai.x ? -1 : 1;
   const action = intent.action;
+  if (action === "dashApproach") {
+    startMovementDash(ai, toward);
+    return;
+  }
+  if (action === "dashRetreat") {
+    startMovementDash(ai, -toward);
+    return;
+  }
   if (action === "approach" || action === "center") {
-    if (canMove(ai)) ai.vx = action === "center" ? Math.sign(W / 2 - ai.x) * rivalAdvanceSpeed : toward * rivalAdvanceSpeed;
+    if (canMove(ai)) ai.vx = (action === "center" ? Math.sign(W / 2 - ai.x) * rivalAdvanceSpeed : toward * rivalAdvanceSpeed) * ai.stats.speed;
     return;
   }
   if (action === "retreat") {
-    if (canMove(ai)) ai.vx = -toward * rivalRetreatSpeed;
+    if (canMove(ai)) ai.vx = -toward * rivalRetreatSpeed * ai.stats.speed;
     return;
   }
   if (action === "block" && canBlock(ai)) {
     ai.aiBlockTimer = randomInt(18, 42);
-    ai.blockType = ai.aiHabits.crouchAttack > 2.5 ? "crouching" : "standing";
+    const hitLevel = incomingHitLevel(opponent);
+    ai.blockType = hitLevel === "low" || (hitLevel === "mid" && ai.aiHabits.crouchAttack > 2.5) ? "crouching" : "standing";
     ai.crouching = ai.blockType === "crouching";
     ai.block = true;
     return;
   }
   if (action === "jump" && canMove(ai) && !ai.jumping && !ai.crouching && ai.aiJumpCooldown <= 0) {
-    ai.vy = jumpVelocity;
+    ai.vy = jumpVelocity * ai.stats.jump;
     ai.jumping = true;
     ai.aiJumpCooldown = randomInt(100, 170);
     return;
@@ -2417,6 +4100,10 @@ function applyAIIntent(ai, opponent, intent, config) {
     return;
   }
   if (action === "hatThrow" && ai.aiSpecialCooldown <= 0 && startMove(ai, "hatThrow")) {
+    ai.aiSpecialCooldown = randomInt(150, 250);
+    return;
+  }
+  if (action === "signature" && ai.aiSpecialCooldown <= 0 && startSignature(ai, opponent)) {
     ai.aiSpecialCooldown = randomInt(150, 250);
     return;
   }
@@ -2465,8 +4152,17 @@ function isOpponentAirborne(opponent) {
   return opponent.jumping;
 }
 
+function incomingHitLevel(attacker) {
+  if (attacker.jumping && attacker.currentMove) return "overhead";
+  return currentMoveDef(attacker)?.hitLevel || "mid";
+}
+
 function stepFighter(f, foe) {
   f.cooldown = Math.max(0, f.cooldown - 1);
+  f.movementDashCooldown = Math.max(0, f.movementDashCooldown - 1);
+  f.guardRegenDelay = Math.max(0, f.guardRegenDelay - 1);
+  f.guardBreak = Math.max(0, f.guardBreak - 1);
+  f.practiceRecoveryDelay = Math.max(0, f.practiceRecoveryDelay - 1);
   f.attack = Math.max(0, f.attack - 1);
   if (f.attack === 0 && !f.currentMove) f.attackType = "";
   f.special = Math.max(0, f.special - 1);
@@ -2485,7 +4181,19 @@ function stepFighter(f, foe) {
     f.knockdown = Math.max(0, f.knockdown - 1);
     f.knockdownAge += 1;
   }
-  f.energy = clamp(f.energy + 0.16, 0, 100);
+  f.energy = clamp(f.energy + 0.16 * f.stats.energyRegen, 0, 100);
+  if (f.guardRegenDelay <= 0 && !f.block && f.hurt <= 0) {
+    f.guard = clamp(f.guard + f.stats.guardRegen, 0, f.stats.maxGuard);
+  }
+  if (isPracticeMode() && f.practiceRecoveryDelay <= 0 && f.hurt <= 0 && f.knockdown <= 0) {
+    f.hp = clamp(f.hp + practiceTuning.healthRecoveryPerFrame, 1, f.maxHp);
+    f.guard = clamp(f.guard + practiceTuning.guardRecoveryPerFrame, 0, f.stats.maxGuard);
+  }
+  f.comboTimer = Math.max(0, f.comboTimer - 1);
+  if (f.comboTimer === 0) {
+    f.comboHits = 0;
+    f.comboTarget = null;
+  }
   if (f.knockdown > 0) {
     f.crouching = false;
     f.block = false;
@@ -2495,6 +4203,7 @@ function stepFighter(f, foe) {
     f.currentMove = null;
     f.attack = 0;
     f.attackType = "";
+    stopMovementDash(f);
     if (f.knockdownAge <= knockoutImpactHold) return;
   }
   if (f.knockdown > 1) f.vx *= f.knockdownLanded ? 0.86 : 0.995;
@@ -2505,6 +4214,10 @@ function stepFighter(f, foe) {
   } else if (f.specialDashFrames > 0) {
     f.vx = f.dir * f.specialDashSpeed;
     f.specialDashFrames -= 1;
+  } else if (f.movementDashFrames > 0 && canAct(f) && !f.currentMove) {
+    f.vx = f.movementDashDirection * f.movementDashSpeed;
+    f.movementDashFrames -= 1;
+    if (f.movementDashFrames <= 0) stopMovementDash(f);
   }
   f.x = clamp(f.x + f.vx, 56, W - 56);
   const riseGravity = f.knockdown > 0 ? knockoutRiseGravity : jumpRiseGravity;
@@ -2528,10 +4241,15 @@ function moveDuration(def) {
 }
 
 function startMove(attacker, moveName) {
-  const def = moveDefs[moveName];
-  if (!def || !canStartMove(attacker)) return false;
+  const def = fighterMoveDef(attacker, moveName);
+  if (!def || !canStartMove(attacker, moveName)) return false;
   if (moveName === "hatThrow" && !canStartHatThrow(attacker)) return false;
-  if (moveName === "hatThrow") attacker.energy -= lincolnHatThrow.energyCost;
+  const energyCost = moveName === "hatThrow" ? lincolnHatThrow.energyCost : def.energyCost || 0;
+  if (attacker.energy < energyCost) return false;
+  prepareMoveCancel(attacker, moveName);
+  stopMovementDash(attacker);
+  attacker.vx = 0;
+  attacker.energy -= energyCost;
   attacker.currentMove = moveName;
   attacker.moveAge = 0;
   attacker.hasHitThisMove = false;
@@ -2540,12 +4258,36 @@ function startMove(attacker, moveName) {
   attacker.cooldown = moveDuration(def);
   attacker.block = false;
   attacker.blockType = "";
+  if (def.advanceFrames) {
+    attacker.specialDashDelay = def.advanceDelay || 0;
+    attacker.specialDashFrames = def.advanceFrames;
+    attacker.specialDashSpeed = def.advanceSpeed || 0;
+  }
   setFighterState(attacker, def.attackType);
   return true;
 }
 
 function currentMoveDef(f) {
-  return f.currentMove ? moveDefs[f.currentMove] : null;
+  return f.currentMove ? fighterMoveDef(f, f.currentMove) : null;
+}
+
+function canStartSignature(f) {
+  const signature = fighterCombatProfile(f).signature;
+  if (!signature) return false;
+  if (signature.move === "hatThrow") return canStartHatThrow(f);
+  return canStartMove(f, "signature") && f.energy >= (signature.energyCost || 0);
+}
+
+function startSignature(attacker, defender) {
+  if (!canStartSignature(attacker)) return false;
+  const signature = fighterCombatProfile(attacker).signature;
+  const started = signature.move === "hatThrow"
+    ? startMove(attacker, signature.move)
+    : startMove(attacker, "signature");
+  if (!started) return false;
+  roundText = signature.name;
+  roundTextTimer = 36;
+  return true;
 }
 
 function isMoveActive(f) {
@@ -2562,7 +4304,13 @@ function updateMove(attacker, defender) {
   if (isMoveActive(attacker) && !attacker.hasHitThisMove) {
     const attackBox = getAttackBox(attacker, def);
     if (attackBox && intersects(attackBox, getHurtBox(defender))) {
-      damage(defender, def.damage, attacker.dir, def.label, attackImpactPoint(attackBox, attacker.dir));
+      damage(defender, def.damage, attacker.dir, def.label, attackImpactPoint(attackBox, attacker.dir), {
+        attacker,
+        hitLevel: attacker.jumping ? "overhead" : def.hitLevel,
+        unblockable: def.unblockable,
+        knockdown: def.knockdown,
+        signature: attacker.currentMove === "signature"
+      });
       attacker.hasHitThisMove = true;
     }
   }
@@ -2594,8 +4342,10 @@ function spawnLincolnHatProjectile(attacker) {
     owner: attacker,
     color: attacker.data.accent,
     label: "HAT",
+    callout: fighterSignatureName(attacker),
     damage: lincolnHatThrow.damage,
     special: false,
+    signature: true,
     life: lincolnHatThrow.life,
     age: 0,
     hitbox: lincolnHatThrow.hitbox
@@ -2603,7 +4353,10 @@ function spawnLincolnHatProjectile(attacker) {
 }
 
 function startSpecial(attacker, defender) {
-  if (!canStartSpecial(attacker)) return;
+  if (!canStartSpecial(attacker)) return false;
+  prepareMoveCancel(attacker, "special");
+  stopMovementDash(attacker);
+  attacker.vx = 0;
   attacker.energy -= damageTuning.specialEnergyCost;
   attacker.cooldown = 54;
   attacker.special = 34;
@@ -2641,7 +4394,7 @@ function startSpecial(attacker, defender) {
       special: true
     });
   } else if (kind === "uppercut") {
-    attacker.vy = jumpVelocity * 1.15;
+    attacker.vy = jumpVelocity * attacker.stats.jump * 1.15;
     attacker.jumping = true;
     queueDelayedHit(attacker, defender, {
       framesLeft: 1,
@@ -2663,18 +4416,23 @@ function startSpecial(attacker, defender) {
       });
     }
   } else {
+    const grantCannon = attacker.data.name === "Grant" && kind === "cannon";
     projectiles.push({
-      x: attacker.x + attacker.dir * 54,
-      y: attacker.y - 92,
+      kind: grantCannon ? "grantCannon" : kind,
+      x: attacker.x + attacker.dir * (grantCannon ? 104 : 54),
+      y: attacker.y + (grantCannon ? -146 : -92),
       vx: attacker.dir * (kind === "beam" ? 9 : 7),
       owner: attacker,
       color: attacker.data.accent,
       label: kind === "beam" ? "USA" : "BOOM",
+      callout: attacker.data.move,
       damage: kind === "beam" ? 14 : 17,
       special: true,
-      life: 95
+      life: 95,
+      hitbox: grantCannon ? { w: 72, h: 42 } : null
     });
   }
+  return true;
 }
 
 function special(attacker, defender) {
@@ -2698,7 +4456,12 @@ function stepCombatEvents() {
       damage(event.target, event.damage, event.owner.dir, event.label, {
         x: event.owner.x + event.owner.dir * event.impactOffset.x,
         y: event.owner.y + event.impactOffset.y
-      }, { special: event.special });
+      }, {
+        special: event.special,
+        callout: event.callout || event.label,
+        attacker: event.owner,
+        hitLevel: event.hitLevel || "mid"
+      });
     }
     event.done = true;
   });
@@ -2829,7 +4592,14 @@ function stepProjectiles() {
     const target = p.owner === player ? rival : player;
     const hitbox = p.hitbox || { w: 36, h: 28 };
     if (intersects({ x: p.x - hitbox.w / 2, y: p.y - hitbox.h / 2, w: hitbox.w, h: hitbox.h }, getHurtBox(target))) {
-      damage(target, p.damage, Math.sign(p.vx), p.label, { x: p.x, y: p.y }, { special: p.special });
+      damage(target, p.damage, Math.sign(p.vx), p.label, { x: p.x, y: p.y }, {
+        special: p.special,
+        signature: p.signature,
+        callout: p.callout,
+        sparkKind: p.kind,
+        attacker: p.owner,
+        hitLevel: "mid"
+      });
       p.life = 0;
     }
   });
@@ -2849,6 +4619,7 @@ function startKnockdown(f, dir) {
   f.specialDashFrames = 0;
   f.specialDashDelay = 0;
   f.specialDashSpeed = 0;
+  stopMovementDash(f);
   f.hitReact = 0;
   f.hurt = knockdownDuration;
   f.jumping = true;
@@ -2858,29 +4629,107 @@ function startKnockdown(f, dir) {
   setFighterState(f, "knockdown");
 }
 
+function guardBlocksHit(f, dir, hitLevel, unblockable = false) {
+  if (unblockable || !f.blockType || Math.sign(dir) === f.dir) return false;
+  if (hitLevel === "low") return f.blockType === "crouching";
+  if (hitLevel === "overhead") return f.blockType === "standing";
+  return true;
+}
+
+function canContinueCombo(attacker, target) {
+  return Boolean(attacker && attacker.comboTarget === target && target.hurt > 0 && target.stunType === "hit");
+}
+
+function interruptFighterAction(f) {
+  f.currentMove = null;
+  f.moveAge = 0;
+  f.hasHitThisMove = false;
+  f.attack = 0;
+  f.attackType = "";
+  f.special = 0;
+  f.specialDashDelay = 0;
+  f.specialDashFrames = 0;
+  f.specialDashSpeed = 0;
+  stopMovementDash(f);
+  combatEvents = combatEvents.filter((event) => event.owner !== f);
+}
+
+function registerComboHit(attacker, target, continuingCombo = false) {
+  if (!attacker) return;
+  if (continuingCombo) attacker.comboHits += 1;
+  else attacker.comboHits = 1;
+  attacker.comboTarget = target;
+  attacker.comboTimer = 90;
+  if (attacker.comboHits >= 2) {
+    roundText = `${attacker.comboHits} HIT COMBO`;
+    roundTextTimer = 34;
+  }
+}
+
 function damage(f, amount, dir, label, impact = null, options = {}) {
   if (tuningMode) return;
-  const blocked = f.blockType !== "" && Math.sign(dir) !== f.dir;
-  const actual = blocked ? Math.ceil(amount * damageTuning.blockMultiplier) : amount;
-  const knocksDown = f.hp - actual <= 0;
-  f.hp = clamp(f.hp - actual, 0, 100);
-  f.hurt = blocked ? damageTuning.blockstun : knocksDown ? knockdownDuration : damageTuning.hitstun;
+  const hitLevel = options.hitLevel || (options.attacker?.jumping ? "overhead" : "mid");
+  const wouldBlock = guardBlocksHit(f, dir, hitLevel, options.unblockable);
+  const interruptedPhase = movePhase(f);
+  const continuingCombo = !wouldBlock && canContinueCombo(options.attacker, f);
+  const comboScale = continuingCombo ? Math.max(0.55, 1 - options.attacker.comboHits * 0.12) : 1;
+  const scaledAmount = Math.max(1, Math.round(amount * (options.attacker?.stats.damage || 1) * comboScale));
+  const guardDamage = Math.max(1, Math.round(
+    scaledAmount
+    * damageTuning.guardDamageMultiplier
+    * (options.special ? damageTuning.specialGuardDamageMultiplier : 1)
+  ));
+  const guardCrushed = wouldBlock && f.guard <= guardDamage;
+  const blocked = wouldBlock && !guardCrushed;
+  const counterHit = !blocked && !guardCrushed && (interruptedPhase === "startup" || interruptedPhase === "active" || f.special > 0);
+  const punish = !blocked && !guardCrushed && !counterHit && interruptedPhase === "recovery";
+  const actual = blocked ? Math.ceil(scaledAmount * damageTuning.blockMultiplier) : scaledAmount;
+  const lethal = !isPracticeMode() && f.hp - actual <= 0;
+  const knocksDown = lethal || Boolean(options.knockdown && !blocked);
+  if (wouldBlock) {
+    f.guard = clamp(f.guard - guardDamage, 0, f.stats.maxGuard);
+    f.guardRegenDelay = damageTuning.guardRegenDelayFrames;
+  }
+  f.hp = clamp(f.hp - actual, isPracticeMode() ? 1 : 0, f.maxHp);
+  if (isPracticeMode()) f.practiceRecoveryDelay = practiceTuning.recoveryDelayFrames;
+  f.hurt = blocked
+    ? damageTuning.blockstun
+    : guardCrushed
+      ? damageTuning.guardBreakStun
+      : knocksDown
+        ? knockdownDuration
+        : damageTuning.hitstun;
   f.stunType = blocked ? "block" : "hit";
   if (blocked && !f.blockType) f.blockType = f.crouching ? "crouching" : "standing";
   f.block = blocked;
-  f.hitReact = blocked || knocksDown ? 0 : 14;
+  if (guardCrushed) {
+    f.guardBreak = damageTuning.guardBreakStun;
+    f.blockType = "";
+    f.aiBlockTimer = 0;
+  }
+  f.hitReact = blocked || knocksDown ? 0 : guardCrushed ? damageTuning.guardBreakStun : 14;
+  if (!blocked) interruptFighterAction(f);
   if (knocksDown) startKnockdown(f, dir);
   else f.knockdown = 0;
   if (!knocksDown) f.vx = dir * (blocked ? damageTuning.blockPushback : damageTuning.pushback);
-  hitPauseFrames = blocked ? damageTuning.blockedHitPause : damageTuning.cleanHitPause;
-  shake = (blocked ? damageTuning.blockedShake : damageTuning.cleanShake) + (options.special && !blocked ? damageTuning.specialShakeBonus : 0);
+  hitPauseFrames = blocked ? damageTuning.blockedHitPause : damageTuning.cleanHitPause + (guardCrushed ? 2 : 0);
+  shake = (blocked ? damageTuning.blockedShake : damageTuning.cleanShake) + (options.special && !blocked ? damageTuning.specialShakeBonus : 0) + (guardCrushed ? 3 : 0);
+  const moveCallout = options.callout || ((options.signature || options.special) ? label : "");
+  const feedback = guardCrushed ? "GUARD BREAK" : blocked ? "BLOCK" : counterHit ? "COUNTER" : punish ? "PUNISH" : moveCallout;
+  const sparkLife = feedback ? 34 : 20;
   hitSparks.push({
     x: impact?.x ?? f.x - Math.sign(dir) * 32,
     y: impact?.y ?? f.y - 92,
-    life: 20,
+    life: sparkLife,
+    maxLife: sparkLife,
     label,
-    blocked
+    blocked,
+    kind: options.sparkKind || "",
+    accent: options.attacker?.data.accent || "#f5d66f",
+    feedback,
+    emphasis: Boolean(guardCrushed || counterHit || punish || options.signature || options.special)
   });
+  if (!blocked) registerComboHit(options.attacker, f, continuingCombo);
 }
 
 function draw() {
@@ -2909,6 +4758,8 @@ function draw() {
   if (!assetsReady) pixelText("LOADING ART", W - 228, H - 30, 1.7, "#f5d66f", "#17131b");
   if (tuningMode) drawTuningOverlay();
   if (roundTextTimer > 0) drawRoundText();
+  drawFighterCallout();
+  if (paused) drawPauseOverlay();
   requestAnimationFrame(loop);
 }
 
@@ -3510,9 +5361,60 @@ function drawFlorence(frame) {
 }
 
 function drawHud() {
+  if (!imageReady(hudChromeSprite)) {
+    drawLegacyHud();
+    return;
+  }
+
+  const hudX = 24;
+  const hudY = 6;
+  const hudW = W - 48;
+  const hudH = 136;
+  const scaleX = hudW / 1672;
+  const scaleY = hudH / 300;
+  const leftHealthX = hudX + 180 * scaleX;
+  const rightHealthX = hudX + 970 * scaleX;
+  const healthY = hudY + 114 * scaleY;
+  const healthW = 522 * scaleX;
+  const healthH = 16 * scaleY;
+
+  ctx.drawImage(hudChromeSprite, 0, 0, 1672, 300, hudX, hudY, hudW, hudH);
+  drawHudName(player.data.short, leftHealthX + 8, healthY - 16, "left");
+  drawHudName(rival.data.short, rightHealthX + healthW - 8, healthY - 16, "right");
+  drawHudHealthFill(leftHealthX, healthY, healthW, healthH, player, false);
+  drawHudHealthFill(rightHealthX, healthY, healthW, healthH, rival, true);
+  drawHudEnergyFill(hudX + 180 * scaleX, hudY + 158 * scaleY, 410 * scaleX, player, false);
+  drawHudEnergyFill(hudX + 1082 * scaleX, hudY + 158 * scaleY, 410 * scaleX, rival, true);
+  drawHudGuardFill(hudX + 180 * scaleX, hudY + 180 * scaleY, 410 * scaleX, player, false);
+  drawHudGuardFill(hudX + 1082 * scaleX, hudY + 180 * scaleY, 410 * scaleX, rival, true);
+
+  const seconds = isPracticeMode()
+    ? "∞"
+    : String(Math.max(0, Math.ceil(roundTimer / timing.fps))).padStart(2, "0");
+  drawDisplayText(seconds, W / 2, hudY + 81, 32, {
+    align: "center",
+    color: "#ffe27a",
+    shadow: "#120912",
+    shadowStep: 3
+  });
+  drawHudRoundWins(hudX + 227 * scaleX, hudY + 217 * scaleY, playerRoundWins, false, 86 * scaleX);
+  drawHudRoundWins(hudX + 1443 * scaleX, hudY + 217 * scaleY, rivalRoundWins, true, 86 * scaleX);
+  if (isPracticeMode()) {
+    drawDisplayText("PRACTICE", W / 2, hudY + 114, 11, {
+      align: "center",
+      color: "#7ee787",
+      shadow: "#090b12",
+      shadowStep: 2
+    });
+  }
+}
+
+function drawLegacyHud() {
   drawHealth(34, 30, player, false);
   drawHealth(W - 394, 30, rival, true);
-  const seconds = String(Math.max(0, Math.ceil(roundTimer / timing.fps))).padStart(2, "0");
+  const seconds = isPracticeMode()
+    ? "--"
+    : String(Math.max(0, Math.ceil(roundTimer / timing.fps))).padStart(2, "0");
   ctx.fillStyle = "#f5d66f";
   ctx.fillRect(434, 24, 92, 64);
   ctx.fillStyle = "#17131b";
@@ -3522,6 +5424,86 @@ function drawHud() {
   pixelText(rival.data.short, W - 202, 92, 2.4, "#fff4c7");
   drawRoundWins(36, 118, playerRoundWins, false);
   drawRoundWins(W - 64, 118, rivalRoundWins, true);
+  if (isPracticeMode()) pixelText("PRACTICE", 420, 96, 1.25, "#7ee787");
+}
+
+function drawHudHealthFill(x, y, width, height, f, flip) {
+  const healthRatio = Math.max(0, Math.min(1, f.hp / f.maxHp));
+  const fillWidth = Math.round(width * healthRatio);
+  const fillX = flip ? x + width - fillWidth : x;
+  const gradient = ctx.createLinearGradient(fillX, y, fillX + Math.max(fillWidth, 1), y);
+  if (healthRatio > 0.35) {
+    gradient.addColorStop(0, "#fff18a");
+    gradient.addColorStop(0.55, "#e5b83c");
+    gradient.addColorStop(1, "#b86b19");
+  } else {
+    gradient.addColorStop(0, "#ff7970");
+    gradient.addColorStop(0.55, "#ca3341");
+    gradient.addColorStop(1, "#731723");
+  }
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x, y, width, height);
+  ctx.clip();
+  ctx.fillStyle = "rgba(15, 11, 20, 0.72)";
+  ctx.fillRect(x, y, width, height);
+  ctx.fillStyle = gradient;
+  ctx.fillRect(fillX, y, fillWidth, height);
+  ctx.fillStyle = "rgba(255, 255, 255, 0.28)";
+  ctx.fillRect(fillX, y + 2, fillWidth, 3);
+  ctx.fillStyle = "rgba(0, 0, 0, 0.25)";
+  ctx.fillRect(fillX, y + height - 4, fillWidth, 3);
+  ctx.restore();
+}
+
+function drawHudEnergyFill(x, y, width, f, flip) {
+  const fillWidth = Math.round(width * Math.max(0, Math.min(1, f.energy / 100)));
+  const fillX = flip ? x + width - fillWidth : x;
+  const gradient = ctx.createLinearGradient(fillX, y, fillX + Math.max(fillWidth, 1), y);
+  gradient.addColorStop(0, "#6fd4ff");
+  gradient.addColorStop(0.55, "#2f7bd1");
+  gradient.addColorStop(1, "#172869");
+  ctx.fillStyle = "rgba(11, 14, 30, 0.68)";
+  ctx.fillRect(x, y, width, 6);
+  ctx.fillStyle = gradient;
+  ctx.fillRect(fillX, y, fillWidth, 6);
+}
+
+function drawHudGuardFill(x, y, width, f, flip) {
+  const ratio = Math.max(0, Math.min(1, f.guard / f.stats.maxGuard));
+  const fillWidth = Math.round(width * ratio);
+  const fillX = flip ? x + width - fillWidth : x;
+  const color = f.guardBreak > 0 ? "#ff5b54" : ratio < 0.35 ? "#ff9e45" : "#7ee787";
+  ctx.fillStyle = "rgba(11, 14, 30, 0.68)";
+  ctx.fillRect(x, y, width, 5);
+  ctx.fillStyle = color;
+  ctx.fillRect(fillX, y, fillWidth, 5);
+}
+
+function drawHudName(text, x, y, align) {
+  drawDisplayText(text, x, y, 18, {
+    align,
+    color: "#fff4c7",
+    shadow: "#8b1c2b",
+    deepShadow: "#090b12",
+    shadowStep: 3
+  });
+}
+
+function drawHudRoundWins(x, y, wins, flip, spacing = 50) {
+  for (let index = 0; index < roundsToWin; index += 1) {
+    const offset = flip ? -index * spacing : index * spacing;
+    const centerX = x + offset;
+    const won = index < wins;
+    ctx.fillStyle = won ? "#ffe27a" : "rgba(255, 244, 199, 0.18)";
+    ctx.beginPath();
+    ctx.arc(centerX, y, won ? 8 : 6, 0, Math.PI * 2);
+    ctx.fill();
+    if (won) {
+      ctx.fillStyle = "rgba(255, 255, 255, 0.35)";
+      ctx.fillRect(centerX - 4, y - 5, 4, 3);
+    }
+  }
 }
 
 function drawRoundWins(x, y, wins, flip) {
@@ -3537,14 +5519,19 @@ function drawHealth(x, y, f, flip) {
   ctx.fillRect(x - 4, y - 4, 364, 34);
   ctx.fillStyle = "#661b26";
   ctx.fillRect(x, y, 356, 26);
-  ctx.fillStyle = f.hp > 35 ? "#f5d66f" : "#ca3341";
-  const width = Math.round(356 * (f.hp / 100));
+  const healthRatio = f.hp / f.maxHp;
+  ctx.fillStyle = healthRatio > 0.35 ? "#f5d66f" : "#ca3341";
+  const width = Math.round(356 * healthRatio);
   if (flip) ctx.fillRect(x + 356 - width, y, width, 26);
   else ctx.fillRect(x, y, width, 26);
   ctx.fillStyle = "#2f7bd1";
   const energyWidth = Math.round(220 * (f.energy / 100));
   if (flip) ctx.fillRect(x + 136 + (220 - energyWidth), y + 34, energyWidth, 8);
   else ctx.fillRect(x, y + 34, energyWidth, 8);
+  const guardWidth = Math.round(220 * (f.guard / f.stats.maxGuard));
+  ctx.fillStyle = f.guardBreak > 0 ? "#ff5b54" : f.guard / f.stats.maxGuard < 0.35 ? "#ff9e45" : "#7ee787";
+  if (flip) ctx.fillRect(x + 136 + (220 - guardWidth), y + 46, guardWidth, 6);
+  else ctx.fillRect(x, y + 46, guardWidth, 6);
 }
 
 function drawFighter(f) {
@@ -3565,6 +5552,18 @@ function drawFighter(f) {
   }
   if (usesTeddySprites(f) && imageReady(teddySprite)) {
     drawTeddySprite(f);
+    return;
+  }
+  if (usesGrantSprites(f) && imageReady(grantSprite) && grantBitmapStateSupported(f)) {
+    drawGrantSprite(f);
+    return;
+  }
+  if (usesObamaSprites(f) && imageReady(obamaSprite) && obamaBitmapStateSupported(f)) {
+    drawObamaSprite(f);
+    return;
+  }
+  if (usesTrumpSprites(f) && imageReady(trumpSpriteSheet)) {
+    drawTrumpSprite(f);
     return;
   }
 
@@ -3626,6 +5625,216 @@ function drawFighter(f) {
   }
 
   ctx.restore();
+}
+
+function grantBitmapStateSupported(f) {
+  return true;
+}
+
+function obamaBitmapStateSupported(f) {
+  return true;
+}
+
+function drawGrantSprite(f) {
+  const frame = grantFrameFor(f);
+  const hurtFlash = f.hurt > 0 && tick % 4 < 2;
+  const nf = normalizedFrame(frame);
+  const scale = fighterScale(f);
+
+  drawShadow(f, (nf.shadowWidth || 96) * scale);
+  ctx.save();
+  ctx.translate(Math.round(f.x), Math.round(f.y));
+  ctx.scale(f.dir * scale, scale);
+
+  if (f.block && frame !== grantFrames.block && frame !== grantFrames.crouchBlock) {
+    ctx.fillStyle = "rgba(158, 228, 255, 0.28)";
+    ctx.fillRect(-60, -142, 28, 112);
+  }
+
+  ctx.globalAlpha = hurtFlash ? 0.55 : 1;
+  ctx.drawImage(
+    preparedFrameCanvas(frame, nf.displayW, nf.displayH),
+    -Math.round(nf.anchorX * nf.scale) + nf.offsetX,
+    -Math.round(nf.anchorY * nf.scale) - nf.lift
+  );
+  ctx.globalAlpha = 1;
+
+  ctx.restore();
+}
+
+function drawObamaSprite(f) {
+  const frame = obamaFrameFor(f);
+  const hurtFlash = f.hurt > 0 && tick % 4 < 2;
+  const nf = normalizedFrame(frame);
+  const scale = fighterScale(f);
+
+  drawShadow(f, (nf.shadowWidth || 96) * scale);
+  ctx.save();
+  ctx.translate(Math.round(f.x), Math.round(f.y));
+  ctx.scale(f.dir * scale, scale);
+
+  if (f.block && frame !== obamaFrames.block && frame !== obamaFrames.crouchBlock) {
+    ctx.fillStyle = "rgba(158, 228, 255, 0.28)";
+    ctx.fillRect(-60, -142, 28, 112);
+  }
+
+  ctx.globalAlpha = hurtFlash ? 0.55 : 1;
+  ctx.drawImage(
+    preparedFrameCanvas(frame, nf.displayW, nf.displayH),
+    -Math.round(nf.anchorX * nf.scale) + nf.offsetX,
+    -Math.round(nf.anchorY * nf.scale) - nf.lift
+  );
+  ctx.globalAlpha = 1;
+
+  ctx.restore();
+}
+
+function drawTrumpSprite(f) {
+  const requestedFrame = trumpFrameFor(f);
+  const frame = imageReady(requestedFrame.image) ? requestedFrame : trumpFrames.idle;
+  const nf = normalizedFrame(frame);
+  const scale = fighterScale(f);
+  drawShadow(f, (nf.shadowWidth || 112) * scale);
+  ctx.save();
+  ctx.translate(Math.round(f.x), Math.round(f.y));
+  ctx.scale(f.dir * (frame.flipX ? -1 : 1) * scale, scale);
+  ctx.globalAlpha = f.hurt > 0 && tick % 4 < 2 ? 0.55 : 1;
+  ctx.drawImage(
+    preparedFrameCanvas(frame, nf.displayW, nf.displayH),
+    -Math.round(nf.anchorX * nf.scale) + nf.offsetX,
+    -Math.round(nf.anchorY * nf.scale) - nf.lift
+  );
+  ctx.restore();
+}
+
+function trumpFrameFor(f) {
+  if (tuningMode && tuningTargetFighter() === f && currentTuningGroup().fighter === "Trump") return currentTuningFrame();
+  if (f.victory) return trumpFrames.victory;
+  if (f.knockdown > 0) return trumpKnockdownFrameFor(f);
+  if (f.stunType === "block" && f.hurt > 0) return trumpFrames.blockHit;
+  if (f.hitReact > 0 && f.crouching) return trumpFrames.lowHit;
+  if (f.hitReact > 0) return trumpFrames.hit;
+  if (f.attack > 0 && f.attackType === "grapple") return trumpFrames.grapple;
+  if (f.special > 0) return f.special > 16 ? trumpFrames.special : trumpFrames.specialRecovery;
+  if (f.attack > 6 && f.attackType === "crouch-kick") return trumpFrames.crouchKick;
+  if (f.attack > 6 && f.attackType === "crouch-punch") return trumpFrames.crouchPunch;
+  if (f.jumping && f.attack > 6 && f.attackType === "kick") return trumpFrames.jumpKick;
+  if (f.attack > 6 && f.attackType === "kick") return trumpFrames.kick;
+  if (f.attack > 6 && f.attackType === "punch") return trumpFrames.punch;
+  if (f.jumping) return trumpFrames.jump;
+  if (f.blockType === "crouching") return trumpFrames.crouchBlock;
+  if (f.block) return trumpFrames.block;
+  if (f.crouching) return trumpFrames.crouch;
+  if (Math.abs(f.vx) > 0.2) return trumpWalkFrameFor(f);
+  if (roundTextTimer > roundIntroFreezeFrames) return trumpFrames.intro;
+  return trumpFrames.idle;
+}
+
+function trumpKnockdownFrameFor(f) {
+  if (!f.knockdownLanded) return f.vy < 0 ? trumpFrames.knockdownAir : trumpFrames.knockdownFall;
+  return trumpFrames.knockdownLand;
+}
+
+function trumpWalkFrameFor(f) {
+  const frames = Math.sign(f.vx) === f.dir ? trumpWalkFrames : trumpBackwalkFrames;
+  return frames[trumpWalkCycle[f.animFrame % trumpWalkCycle.length]];
+}
+
+function grantFrameFor(f) {
+  if (tuningMode && tuningTargetFighter() === f && currentTuningGroup().fighter === "Grant") return currentTuningFrame();
+  if (f.victory && grantVictorySpritesReady()) {
+    const frameIndex = Math.min(Math.floor(f.victoryAge / timing.victoryFrameTicks), grantVictoryFrames.length - 1);
+    return grantVictoryFrames[frameIndex];
+  }
+  if (f.knockdown > 0 && imageReady(grantKnockdownSprite)) return grantKnockdownFrameFor(f);
+  if (f.stunType === "block" && f.hurt > 0 && imageReady(grantBlockHitSprite)) return grantFrames.blockHit;
+  if (f.hitReact > 0 && f.crouching && imageReady(grantLowHitSprite)) return grantFrames.lowHit;
+  if (f.hitReact > 0 && imageReady(grantHitSprite)) return grantFrames.hit;
+  if (f.attack > 0 && f.attackType === "grapple" && imageReady(grantGrappleSprite)) return grantFrames.grapple;
+  if (f.special > 0 && grantSpecialSpritesReady()) return grantSpecialFrameFor(f);
+  if (f.attack > 6 && f.attackType === "crouch-kick" && imageReady(grantCrouchKickSprite)) return grantFrames.crouchKick;
+  if (f.attack > 6 && f.attackType === "crouch-punch" && imageReady(grantCrouchPunchSprite)) return grantFrames.crouchPunch;
+  if (f.jumping && f.attack > 6 && f.attackType === "kick" && imageReady(grantJumpKickSprite)) return grantFrames.jumpKick;
+  if (f.attack > 6 && f.attackType === "kick" && imageReady(grantKickSprite)) return grantFrames.kick;
+  if (f.attack > 6 && f.attackType === "punch" && imageReady(grantPunchSprite)) return grantFrames.punch;
+  if (f.jumping && imageReady(grantJumpSprite)) return grantFrames.jump;
+  if (f.blockType === "standing" && imageReady(grantBlockSprite)) return grantFrames.block;
+  if (f.blockType === "crouching" && imageReady(grantCrouchBlockSprite)) return grantFrames.crouchBlock;
+  if (f.crouching && imageReady(grantCrouchSprite)) return grantFrames.crouch;
+  if (!f.jumping && Math.abs(f.vx) > 0.2 && grantMoveSpritesReady()) {
+    return grantWalkFrameFor(f);
+  }
+  return grantFrames.idle;
+}
+
+function obamaFrameFor(f) {
+  if (tuningMode && tuningTargetFighter() === f && currentTuningGroup().fighter === "Obama") return currentTuningFrame();
+  if (f.victory) return obamaFrames.idle;
+  if (f.knockdown > 0) return obamaKnockdownFrameFor(f);
+  if (f.hitReact > 0 && f.crouching && imageReady(obamaLowHitSprite)) return obamaFrames.lowHit;
+  if (f.hitReact > 0) return obamaFrames.hit;
+  if (f.special > 0) return obamaSpecialFrameFor(f);
+  if (f.attack > 6 && f.attackType === "crouch-kick" && imageReady(obamaCrouchKickSprite)) return obamaFrames.crouchKick;
+  if (f.attack > 6 && f.attackType === "crouch-punch" && imageReady(obamaCrouchPunchSprite)) return obamaFrames.crouchPunch;
+  if (f.jumping && f.attack > 6 && f.attackType === "kick" && imageReady(obamaJumpKickSprite)) return obamaFrames.jumpKick;
+  if (f.attack > 6 && f.attackType === "kick" && imageReady(obamaKickSprite)) return obamaFrames.kick;
+  if (f.attack > 6 && f.attackType === "punch" && imageReady(obamaPunchSprite)) return obamaFrames.punch;
+  if (f.jumping && imageReady(obamaJumpSprite)) return obamaFrames.jump;
+  if (f.blockType === "standing" && imageReady(obamaBlockSprite)) return obamaFrames.block;
+  if (f.blockType === "crouching" && imageReady(obamaCrouchBlockSprite)) return obamaFrames.crouchBlock;
+  if (f.crouching && imageReady(obamaCrouchSprite)) return obamaFrames.crouch;
+  if (!f.jumping && Math.abs(f.vx) > 0.2 && Math.sign(f.vx) === f.dir && obamaWalkForwardSpritesReady()) {
+    return obamaWalkForwardFrames[obamaWalkForwardCycle[f.animFrame % obamaWalkForwardCycle.length]];
+  }
+  return obamaFrames.idle;
+}
+
+function obamaSpecialFrameFor(f) {
+  if (f.special > 28 && imageReady(obamaPunchSprite)) return obamaFrames.punch;
+  if (f.special > 14 && imageReady(obamaKickSprite)) return obamaFrames.kick;
+  return obamaFrames.idle;
+}
+
+function obamaKnockdownFrameFor(f) {
+  if (f.knockdownAge <= knockoutImpactHold && imageReady(obamaHitSprite)) return obamaFrames.hit;
+  if (!f.knockdownLanded && imageReady(obamaKickSprite)) return obamaFrames.kick;
+  if (imageReady(obamaCrouchSprite)) return obamaFrames.crouch;
+  return obamaFrames.hit;
+}
+
+function obamaWalkForwardSpritesReady() {
+  return imagesReady(obamaWalkForwardSprites);
+}
+
+function grantMoveSpritesReady() {
+  return imagesReady(grantWalkSprites) && imagesReady(grantBackwalkSprites);
+}
+
+function grantVictorySpritesReady() {
+  return imageReady(grantVictorySprite) && imageReady(grantVictory2Sprite);
+}
+
+function grantSpecialSpritesReady() {
+  return imageReady(grantSpecialSprite) && imageReady(grantSpecialRecoverySprite);
+}
+
+function grantSpecialFrameFor(f) {
+  return f.special > 16 ? grantFrames.special : grantFrames.specialRecovery;
+}
+
+function grantKnockdownFrameFor(f) {
+  if (f.knockdownAge <= knockoutImpactHold && imageReady(grantHitSprite)) return grantFrames.hit;
+  if (!f.knockdownLanded && imageReady(grantKnockdownAirSprite)) return grantFrames.knockdownAir;
+  if (f.knockdownLanded <= knockdownFrameTicks && imageReady(grantKnockdownLandSprite)) return grantFrames.knockdownLand;
+  return grantFrames.knockdown;
+}
+
+function grantWalkFrameFor(f) {
+  const movingForward = Math.sign(f.vx) === f.dir;
+  if (movingForward) {
+    return grantWalkFrames[grantWalkCycle[f.animFrame % grantWalkCycle.length]];
+  }
+  return grantBackwalkFrames[grantBackwalkCycle[f.animFrame % grantBackwalkCycle.length]];
 }
 
 function drawLincolnSprite(f) {
@@ -3816,13 +6025,6 @@ function drawJfkSprite(f) {
   );
   ctx.globalAlpha = 1;
 
-  if (f.special > 0) {
-    ctx.fillStyle = f.data.accent;
-    ctx.fillRect(-44, -184, 10, 10);
-    ctx.fillRect(34, -194, 14, 14);
-    ctx.fillRect(-8, -208, 12, 12);
-  }
-
   ctx.restore();
 }
 
@@ -3982,7 +6184,7 @@ function fighterBob(f) {
   if (f.knockdown > 0) return 0;
   if (f.jumping || Math.abs(f.vx) > 0.2) return 0;
   // Washington's detailed sprite art stays planted; avoid synthetic bobbing.
-  if (usesWashingtonSprites(f) || usesJfkSprites(f) || usesTeddySprites(f)) return 0;
+  if (usesWashingtonSprites(f) || usesJfkSprites(f) || usesTeddySprites(f) || usesGrantSprites(f) || usesObamaSprites(f) || usesTrumpSprites(f)) return 0;
   return Math.sin(tick / 38) * 0.8;
 }
 
@@ -4140,6 +6342,20 @@ function drawProjectile(p) {
     } else {
       ctx.drawImage(lincolnHatProjectileSprite, frame * size, 0, size, size, Math.round(p.x - size / 2), Math.round(p.y - size / 2), size, size);
     }
+    ctx.restore();
+    return;
+  }
+  if (p.kind === "grantCannon" && imageReady(grantCannonProjectileSprite)) {
+    const frame = grantCannonProjectileFrame;
+    const nf = normalizedFrame(frame);
+    ctx.save();
+    ctx.translate(Math.round(p.x), Math.round(p.y));
+    if (p.vx < 0) ctx.scale(-1, 1);
+    ctx.drawImage(
+      preparedFrameCanvas(frame, nf.displayW, nf.displayH),
+      -Math.round(nf.anchorX * nf.scale),
+      -Math.round(nf.anchorY * nf.scale)
+    );
     ctx.restore();
     return;
   }
@@ -4537,15 +6753,28 @@ function lerp(a, b, t) {
 }
 
 function drawSpark(s) {
-  const lifeProgress = s.life / 20;
+  const maxLife = s.maxLife || 20;
+  const lifeProgress = s.life / maxLife;
   const pulse = 1 + (1 - lifeProgress) * 0.28;
-  const displayW = Math.round((s.blocked ? 62 : 76) * pulse);
+  const emphasisScale = s.emphasis ? 1.18 : 1;
+  const displayW = Math.round((s.blocked ? 62 : 76) * pulse * emphasisScale);
   const displayH = Math.round(displayW * 0.54);
   const alpha = clamp(lifeProgress * 1.35, 0, 1);
 
   ctx.save();
   ctx.globalAlpha = alpha;
-  if (imageReady(impactSparkSprite)) {
+  if (s.kind === "grantCannon" && imageReady(grantCannonImpactSprite)) {
+    const frame = grantCannonImpactFrame;
+    const nf = normalizedFrame(frame);
+    const sparkScale = pulse * 1.08;
+    ctx.translate(Math.round(s.x), Math.round(s.y));
+    ctx.scale(sparkScale, sparkScale);
+    ctx.drawImage(
+      preparedFrameCanvas(frame, nf.displayW, nf.displayH),
+      -Math.round(nf.anchorX * nf.scale),
+      -Math.round(nf.anchorY * nf.scale)
+    );
+  } else if (imageReady(impactSparkSprite)) {
     ctx.drawImage(
       impactSparkSprite,
       139,
@@ -4562,11 +6791,24 @@ function drawSpark(s) {
       ctx.fillRect(Math.round(s.x - displayW / 2), Math.round(s.y - displayH / 2), displayW, displayH);
     }
   } else {
-    ctx.fillStyle = s.blocked ? "#9ee4ff" : "#fff4c7";
+    ctx.fillStyle = s.blocked ? "#9ee4ff" : s.accent || "#fff4c7";
     ctx.fillRect(s.x - 30, s.y - 7, 60, 14);
     ctx.fillRect(s.x - 7, s.y - 30, 14, 60);
   }
   ctx.restore();
+
+  if (s.feedback) {
+    const elapsed = maxLife - s.life;
+    const rise = Math.min(18, elapsed * 0.75);
+    const fontSize = s.feedback.length > 14 ? 16 : s.feedback.length > 9 ? 19 : 23;
+    drawDisplayText(s.feedback.slice(0, 20).toUpperCase(), s.x, s.y - 44 - rise, fontSize, {
+      align: "center",
+      color: s.blocked ? "#9ee4ff" : "#fff4c7",
+      shadow: s.accent || "#8b1c2b",
+      deepShadow: "#090b12",
+      shadowStep: 2
+    });
+  }
 }
 
 function drawDebug() {
@@ -4683,7 +6925,7 @@ function drawFighterDebugText(f, x, y) {
   ctx.fillText(`hurt ${f.hurt} stun ${f.stunType || "none"}`, x, y + 60);
   ctx.fillText(`block ${f.blockType || "none"} hit ${f.hitReact}`, x, y + 75);
   ctx.fillText(`vx ${f.vx.toFixed(1)} vy ${f.vy.toFixed(1)}`, x, y + 90);
-  ctx.fillText(`hp ${f.hp} en ${Math.round(f.energy)}`, x, y + 105);
+  ctx.fillText(`hp ${f.hp} en ${Math.round(f.energy)} guard ${Math.round(f.guard)}`, x, y + 105);
   ctx.fillText(`jump buffer ${f.jumpBuffer}`, x, y + 120);
 }
 
@@ -4700,9 +6942,163 @@ function drawAssetDebugWarnings() {
 
 function drawRoundText() {
   const text = roundText.slice(0, 22).toUpperCase();
-  const scale = text.length > 14 ? 2.6 : 3.8;
-  const width = text.length * 26 * (scale / 3);
-  pixelText(text, W / 2 - width / 2, 148, scale, "#fff4c7", "#8b1c2b");
+  const fontSize = text.length > 16 ? 30 : text.length > 10 ? 36 : 48;
+  drawDisplayText(text, W / 2, 150, fontSize, {
+    align: "center",
+    color: "#fff4c7",
+    shadow: "#8b1c2b",
+    deepShadow: "#090b12",
+    shadowStep: Math.max(3, Math.round(fontSize / 12))
+  });
+}
+
+function drawFighterCallout() {
+  if (!fighterCallout?.entries?.length) return;
+  const fade = Math.min(1, fighterCallout.timer / 18);
+  const isVictory = fighterCallout.kind === "victory";
+  const entries = fighterCallout.entries;
+  const panelWidth = isVictory ? 520 : 384;
+  const panelHeight = 72;
+  const gap = 28;
+  const startX = isVictory ? (W - panelWidth) / 2 : (W - panelWidth * 2 - gap) / 2;
+  const y = H - panelHeight - 24;
+
+  ctx.save();
+  ctx.globalAlpha = fade;
+  entries.forEach((entry, index) => {
+    const x = startX + index * (panelWidth + gap);
+    const accent = entry.fighter.data.accent || "#f5d66f";
+    ctx.fillStyle = "rgba(7, 10, 18, 0.9)";
+    ctx.fillRect(x, y, panelWidth, panelHeight);
+    ctx.strokeStyle = accent;
+    ctx.lineWidth = 3;
+    ctx.strokeRect(x, y, panelWidth, panelHeight);
+    ctx.fillStyle = accent;
+    ctx.fillRect(x, y, 8, panelHeight);
+
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    ctx.font = "bold 13px monospace";
+    ctx.fillStyle = "#f5d66f";
+    ctx.fillText(`${entry.fighter.data.short} // ${isVictory ? "VICTORY" : "READY"}`, x + 20, y + 12);
+    ctx.font = "bold 15px monospace";
+    ctx.fillStyle = "#fff4c7";
+    drawWrappedCalloutText(entry.line, x + 20, y + 35, panelWidth - 40, 18);
+  });
+  ctx.restore();
+}
+
+function drawWrappedCalloutText(text, x, y, maxWidth, lineHeight) {
+  const words = String(text || "").split(/\s+/);
+  let line = "";
+  let row = 0;
+  words.forEach((word) => {
+    const candidate = line ? `${line} ${word}` : word;
+    if (line && ctx.measureText(candidate).width > maxWidth) {
+      ctx.fillText(line, x, y + row * lineHeight);
+      line = word;
+      row += 1;
+    } else {
+      line = candidate;
+    }
+  });
+  if (line) ctx.fillText(line, x, y + row * lineHeight);
+}
+
+function drawPauseOverlay() {
+  ctx.save();
+  ctx.fillStyle = "rgba(5, 7, 14, 0.86)";
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = "rgba(17, 22, 38, 0.96)";
+  ctx.fillRect(54, 48, W - 108, H - 90);
+  ctx.strokeStyle = "#f5d66f";
+  ctx.lineWidth = 4;
+  ctx.strokeRect(54, 48, W - 108, H - 90);
+  ctx.strokeStyle = "#8b1c2b";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(62, 56, W - 124, H - 106);
+
+  drawDisplayText(isPracticeMode() ? "PRACTICE PAUSED" : "MATCH PAUSED", W / 2, 102, 38, {
+    align: "center",
+    color: "#fff4c7",
+    shadow: "#8b1c2b",
+    deepShadow: "#090b12",
+    shadowStep: 3
+  });
+  drawPauseFighterGuide(player, 86, 132, 372, "1P");
+  drawPauseFighterGuide(rival, 502, 132, 372, cpuEnabled ? `CPU ${aiDifficulty.toUpperCase()}` : "2P");
+
+  ctx.fillStyle = "rgba(8, 11, 20, 0.82)";
+  ctx.fillRect(86, 350, 788, 88);
+  ctx.strokeStyle = "rgba(245, 214, 111, 0.45)";
+  ctx.strokeRect(86, 350, 788, 88);
+  ctx.fillStyle = "#fff4c7";
+  ctx.font = "bold 16px monospace";
+  ctx.textAlign = "center";
+  ctx.fillText("WASD MOVE  •  DOUBLE-TAP A/D DASH  •  SPACE BLOCK", W / 2, 378);
+  ctx.fillText("J PUNCH  •  K KICK  •  I SIGNATURE  •  L SPECIAL", W / 2, 402);
+  ctx.fillStyle = "#7ee787";
+  ctx.fillText("GREEN METER = GUARD", W / 2, 426);
+
+  drawDisplayText(pauseReason === "focus" ? "PAUSED WHEN TAB LOST FOCUS" : "ESC OR P TO RESUME", W / 2, 474, 20, {
+    align: "center",
+    color: "#ffe27a",
+    shadow: "#090b12",
+    shadowStep: 2
+  });
+  ctx.restore();
+}
+
+function drawPauseFighterGuide(f, x, y, width, sideLabel) {
+  const combat = fighterCombatProfile(f);
+  const signature = fighterSignatureName(f);
+  ctx.fillStyle = "rgba(8, 11, 20, 0.82)";
+  ctx.fillRect(x, y, width, 190);
+  ctx.strokeStyle = f.data.accent;
+  ctx.lineWidth = 3;
+  ctx.strokeRect(x, y, width, 190);
+  ctx.fillStyle = f.data.accent;
+  ctx.font = "bold 14px monospace";
+  ctx.textAlign = "left";
+  ctx.fillText(sideLabel, x + 18, y + 25);
+  drawDisplayText(f.data.name.toUpperCase(), x + 18, y + 58, f.data.name.length > 11 ? 23 : 28, {
+    color: "#fff4c7",
+    shadow: f.data.accent,
+    deepShadow: "#090b12",
+    shadowStep: 2
+  });
+  ctx.fillStyle = "#c5cce0";
+  ctx.font = "bold 14px monospace";
+  ctx.fillText((combat.archetype || "Fighter").toUpperCase(), x + 18, y + 88);
+  ctx.fillStyle = "#fff4c7";
+  ctx.font = "15px monospace";
+  ctx.fillText(`I  ${signature}`.slice(0, 38), x + 18, y + 122);
+  ctx.fillText(`L  ${f.data.move}`.slice(0, 38), x + 18, y + 150);
+  ctx.fillStyle = "#7ee787";
+  ctx.fillText(`GUARD ${Math.ceil(f.guard)}/${f.stats.maxGuard}`, x + 18, y + 176);
+}
+
+function drawDisplayText(text, x, y, size, options = {}) {
+  const {
+    align = "left",
+    color = "#fff4c7",
+    shadow = "#8b1c2b",
+    deepShadow = null,
+    shadowStep = 4
+  } = options;
+  ctx.save();
+  ctx.font = `${size}px Rye, Georgia, serif`;
+  ctx.textAlign = align;
+  ctx.textBaseline = "alphabetic";
+  ctx.fillStyle = shadow;
+  ctx.fillText(text, x + shadowStep, y + shadowStep);
+  if (deepShadow) {
+    ctx.fillStyle = deepShadow;
+    ctx.fillText(text, x + shadowStep * 2, y + shadowStep * 2);
+  }
+  ctx.fillStyle = color;
+  ctx.fillText(text, x, y);
+  ctx.restore();
 }
 
 const font = {
@@ -4786,11 +7182,11 @@ function koSlowMotionActive() {
     && ((player.hp <= 0 && player.knockdown > 1) || (rival.hp <= 0 && rival.knockdown > 1));
 }
 
-const handledKeys = [
-  "Space", "Enter", "ShiftLeft", "ShiftRight", "ControlLeft", "ControlRight", "AltLeft", "AltRight",
-  "KeyW", "KeyA", "KeyS", "KeyD", "KeyJ", "KeyK", "KeyI", "KeyL", "KeyH", "KeyR", "KeyG", "KeyC", "KeyV",
+const handledKeys = new Set([
+  "Space", "Enter", "Escape", "ShiftLeft", "ShiftRight", "ControlLeft", "ControlRight", "AltLeft", "AltRight",
+  "KeyW", "KeyA", "KeyS", "KeyD", "KeyJ", "KeyK", "KeyI", "KeyL", "KeyM", "KeyP", "KeyH", "KeyR", "KeyG", "KeyC", "KeyV",
   "Digit1", "Digit2", "BracketLeft", "BracketRight", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"
-];
+]);
 
 window.addEventListener("keydown", (event) => {
   const wasDown = keys.has(event.code);
@@ -4800,9 +7196,40 @@ window.addEventListener("keydown", (event) => {
     event.preventDefault();
     return;
   }
+  if (
+    !wasDown
+    && arcadeScreen === "fight"
+    && (event.code === "Escape" || event.code === "KeyP")
+  ) {
+    toggleMatchPause();
+    event.preventDefault();
+    return;
+  }
+  if (paused) {
+    if (handledKeys.has(event.code)) event.preventDefault();
+    return;
+  }
   // Buffer jump at the browser input edge so a quick press survives hit pause
   // or a couple of locked frames and fires as soon as jumping is legal.
   if (event.code === "KeyW" && !wasDown) player.jumpBuffer = timing.jumpBufferFrames;
+  if (
+    !wasDown
+    && arcadeScreen === "fight"
+    && running
+    && !tuningMode
+    && (event.code === "KeyA" || event.code === "KeyD")
+  ) {
+    handleMovementDashTap(player, event.code);
+  }
+  if (
+    !wasDown
+    && arcadeScreen === "fight"
+    && running
+    && !tuningMode
+    && ["KeyJ", "KeyK", "KeyI", "KeyL"].includes(event.code)
+  ) {
+    bufferCombatInput(player, event.code, keys.has("KeyS") || player.crouching);
+  }
   if (event.code === "Enter" && !running) resetMatch();
   if (event.code === "KeyH" && !wasDown) debugBoxes = !debugBoxes;
   if (event.code === "KeyG" && !wasDown) toggleTuningMode();
@@ -4812,10 +7239,7 @@ window.addEventListener("keydown", (event) => {
     roundTextTimer = 42;
   }
   if (event.code === "KeyV" && !wasDown) {
-    const levels = Object.keys(AI_DIFFICULTY);
-    aiDifficulty = levels[(levels.indexOf(aiDifficulty) + 1) % levels.length];
-    roundText = `CPU ${aiDifficulty}`;
-    roundTextTimer = 42;
+    cycleAiDifficulty();
   }
   if (tuningMode && !wasDown && (event.code === "Digit1" || event.code === "Digit2")) {
     tuningTarget = event.code === "Digit1" ? "player" : "rival";
@@ -4831,7 +7255,7 @@ window.addEventListener("keydown", (event) => {
     if (event.shiftKey || keys.has("ShiftLeft") || keys.has("ShiftRight")) resetMatch();
     else resetPositionsOnly();
   }
-  if (handledKeys.includes(event.code)) {
+  if (handledKeys.has(event.code)) {
     event.preventDefault();
   }
 });
@@ -4840,10 +7264,24 @@ window.addEventListener("keyup", (event) => {
   keys.delete(event.code);
   released.add(event.code);
 });
+
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden && canPauseMatch() && !paused) setMatchPaused(true, "focus");
+});
+
 playerSelect.addEventListener("change", updateMoveCards);
 rivalSelect.addEventListener("change", updateMoveCards);
 startBtn.addEventListener("click", resetMatch);
-introStartBtn.addEventListener("click", () => setArcadeScreen("characters"));
+introStartBtn.addEventListener("click", () => {
+  playIntroThemeOnce();
+  setArcadeScreen("characters");
+});
+difficultyButtons.forEach((button) => {
+  button.addEventListener("click", () => setAiDifficulty(button.dataset.difficulty, true));
+});
+modeButtons.forEach((button) => {
+  button.addEventListener("click", () => setMatchMode(button.dataset.mode, true));
+});
 
 populateSelects();
 buildArcadeFlow();
